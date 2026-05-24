@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Paris'PAM</title>
+        <meta name="theme-color" content="#2A9D8F">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <link rel="manifest" href="manifest.json">
+        <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192.svg">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <meta name="apple-mobile-web-app-title" content="Paris'PAM">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="libs/leaflet.min.css"/>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+        <!-- ─── Vue : Carte ─────────────────────────── -->
+        <div id="view-map" class="app-view active">
+            <header>
+                <div class="logo">Paris'PAM</div>
+                <div class="header-spacer"></div>
+                <span class="poi-count" id="poi-count">0 lieux</span>
+                <button class="btn-export" onclick="exportData()">Exporter</button>
+            </header>
+
+        <div class="topbar-actions">
+            <button class="btn-filter" id="btn-filter-map" onclick="openFilterMenu('map')">
+                <span>⚙︎ Filtrer</span>
+                <span class="filter-active-count" id="filter-count-map"></span>
+            </button>
+        </div>
+
+        <div class="main">
+            <div id="map"></div>
+
+            <div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+            <div class="panel" id="panel">
+                <div class="panel-header">
+                    <div class="panel-title" id="panel-title">Nouveau lieu</div>
+                    <button class="btn-star" id="panel-fav-btn" style="display:none"
+                        onclick="toggleFavorite()">☆</button>
+                    <button class="btn-close" onclick="closePanel()">✕</button>
+                </div>
+                <div class="panel-body" id="panel-body"></div>
+                <div class="panel-footer" id="panel-footer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Vue : Liste ─────────────────────────── -->
+    <div id="view-list" class="app-view">
+        <header>
+            <div class="logo">Paris'PAM <span style="font-family:sans-serif;font-size:.9rem">🗺️</span>
+            </div>
+            <div class="header-spacer"></div>
+            <span class="poi-count" id="poi-count-list">0 lieux</span>
+        </header>
+        <div class="topbar-actions">
+            <button class="btn-filter" id="btn-filter-list" onclick="openFilterMenu('list')">
+                <span>⚙︎ Filtrer</span>
+                <span class="filter-active-count" id="filter-count-list"></span>
+            </button>
+        </div>
+        <div class="list-body" id="list-body">
+            <div class="list-empty-state">
+                <span>📍</span>
+                <p>Aucun lieu enregistré pour le moment.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ─── Vue : Photos ────────────────────────── -->
+    <div id="view-photos" class="app-view">
+        <header>
+            <div class="logo">Paris'PAM <span style="font-family:sans-serif;font-size:.9rem">🖼️</span></div>
+            <div class="header-spacer"></div>
+            <span class="poi-count" id="poi-count-photos">0 photo</span>
+        </header>
+        <div class="photos-grid-body" id="photos-grid-body">
+            <div class="list-empty-state">
+                <span>🖼️</span>
+                <p>Aucune photo enregistrée.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Vue : Paramètres ─────────────────────── -->
+    <div id="view-settings" class="app-view">
+        <header>
+            <div class="logo">Paris'PAM <span style="font-family:sans-serif;font-size:.9rem">🗺️</span>
+            </div>
+        </header>
+        <div class="settings-body">
+            <div class="settings-section">
+                <div class="settings-section-title">Données</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Effacer tous les lieux</div>
+                        <div class="settings-row-desc">Supprime définitivement tous les points d'intérêt et leurs
+                            photos.</div>
+                    </div>
+                    <button class="btn-danger" onclick="deleteAllPois()">Tout effacer</button>
+                </div>
+                <div class="settings-row" style="border-top:1px solid var(--border)">
+                    <div>
+                        <div class="settings-row-label">Vider le cache</div>
+                        <div class="settings-row-desc">Supprime les fichiers mis en cache par le Service Worker.</div>
+                    </div>
+                    <button class="btn-secondary" onclick="clearCache()">Vider</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <div class="settings-section-title">Maintenance</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Réinitialisation complète</div>
+                        <div class="settings-row-desc">Vide le cache et réenregistre le Service Worker, mais conserve vos Lieux.</div>
+                    </div>
+                    <button class="btn-danger" onclick="hardResetPWA()">Hard Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Barre de navigation ──────────────────── -->
+    <div class="bottom-nav">
+        <button class="nav-btn active" data-view="map" onclick="switchView('map', this)">
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-label">Carte</span>
+        </button>
+        <button class="nav-btn" data-view="list" onclick="switchView('list', this)">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Lieux</span>
+        </button>
+        <button class="nav-btn" data-view="photos" onclick="switchView('photos', this)">
+            <span class="nav-icon">🖼️</span>
+            <span class="nav-label">Photos</span>
+        </button>
+        <button class="nav-btn" data-view="settings" onclick="switchView('settings', this)">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Paramètres</span>
+        </button>
+    
+        <div class="lightbox" id="lightbox" onclick="handleLightboxClick(event)">
+            <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+            <div class="lightbox-inner" onclick="event.stopPropagation()">
+                <img id="lightbox-img" src="" alt="">
+                <div class="lightbox-actions" id="lightbox-actions" style="display:none">
+                    <button class="lightbox-action-btn" onclick="lightboxGoToDetail()">📋 Voir le Lieu</button>
+                    <button class="lightbox-action-btn" onclick="lightboxGoToMap()">📍 Voir sur la Map</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="libs/leaflet.min.js"></script>
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+    <!-- ─── Menu filtre ──────────────────────────── -->
+    <div class="filter-overlay" id="filter-overlay" onclick="closeFilterMenu()"></div>
+    <div class="filter-menu" id="filter-menu">
+        <div class="filter-menu-header">
+            <span class="filter-menu-title">Catégories</span>
+            <button class="btn-close" onclick="closeFilterMenu()">✕</button>
+        </div>
+        <div class="filter-menu-body" id="filter-menu-body"></div>
+        <div class="filter-menu-footer">
+            <button class="btn-secondary" onclick="selectAllCategories()">Tout sélectionner</button>
+            <button class="btn-primary" onclick="closeFilterMenu()">Appliquer</button>
+        </div>
+    </div>
+</body>
+
+</html>
