@@ -180,11 +180,32 @@ function showUpdateBanner(registration) {
     document.body.appendChild(banner);
 }
 
+async function serverJoignable() {
+    /* ------------------------------
+        VÉRIFICATION DE CONNEXION
+        Vider le cache hors ligne laisserait l'app sans rien pour se recharger.
+        On interroge donc le serveur (navigator.onLine n'est pas fiable sur iOS).
+        Requête HEAD : le SW ne l'intercepte pas et rien n'est mis en cache.
+    ------------------------------ */
+    try {
+        const res = await fetch(`sw.js?check=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
 async function hardResetPWA() {
     /* ------------------------------
         RESET COMPLET DE LA PWA
     ------------------------------ */
     console.log('[RESET] Réinitialisation complète…');
+
+    if (!(await serverJoignable())) {
+        console.warn('[RESET] Serveur injoignable → réinitialisation annulée');
+        showToast('📶 Connecte-toi à Internet d\'abord');
+        return;
+    }
 
     // FIX : on désactive le listener controllerchange AVANT de déclencher
     // skipWaiting, pour éviter que le reload automatique interrompe les
@@ -1180,6 +1201,10 @@ async function deleteAllPois() {
 
 async function clearCache() {
   if (!confirm('Vider le cache de l\'application ?')) return;
+  if (!(await serverJoignable())) {
+    showToast('📶 Connecte-toi à Internet d\'abord');
+    return;
+  }
   const keys = await caches.keys();
   for (const key of keys) await caches.delete(key);
   showToast('✅ Cache vidé');
