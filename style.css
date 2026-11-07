@@ -521,7 +521,10 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
   border: 1.5px solid var(--border);
   border-radius: 8px;
   padding: 9px 11px;
-  font: 400 .88rem inherit;
+  /* 16px minimum : en dessous, iOS zoome automatiquement sur le champ à la saisie. */
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 1rem;
   color: var(--text);
   transition: border-color .15s;
   outline: none;
@@ -590,7 +593,9 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 .tag-chip button:hover { color: #fff; }
 #tag-input {
   border: none; background: none; outline: none;
-  font: 400 .84rem inherit;
+  font-family: inherit;
+  font-weight: 400;
+  font-size: 1rem;  /* 16px : évite le zoom automatique d'iOS */
   color: var(--text);
   flex: 1; min-width: 80px;
 }
