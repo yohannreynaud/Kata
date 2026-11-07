@@ -1105,23 +1105,11 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 .filter-menu-title { font-size: 1.1rem; font-weight: 600; }
 .filter-menu-header .btn-close { margin: 0 -8px 0 0; }
 
-/* Appui prolongé sur la carte : cercle qui se remplit jusqu'à la création du lieu */
-.long-press-ring {
-  position: absolute;
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
-  border-radius: 50%;
-  border: 3px solid var(--accent, #2b6cb0);
-  background: rgba(255, 255, 255, .25);
-  pointer-events: none;
-  z-index: 1000;
-  transform: scale(.2);
-  opacity: .4;
-  animation: long-press-grow linear forwards;
-}
-@keyframes long-press-grow {
-  to { transform: scale(1); opacity: 1; }
+/* Juste après un appui prolongé, tant que le doigt est posé : le formulaire qui
+   vient de s'ouvrir sous le doigt ne doit pas réagir au relâchement. */
+body.long-press-holding .panel,
+body.long-press-holding .panel-overlay {
+  pointer-events: none !important;
 }
 
 /* Icônes dessinées des types de lieux */
