@@ -5,7 +5,9 @@ let db;
 
 function initDB(){
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    if (!window.indexedDB) return reject(new Error('IndexedDB absent'));
+    let req;
+    try { req = indexedDB.open(DB_NAME, DB_VERSION); } catch (err) { return reject(err); }
 
     req.onupgradeneeded = e => {
       const d = e.target.result;
