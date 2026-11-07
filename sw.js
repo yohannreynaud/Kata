@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever an app file changes so phones pick up the new version.
-const CACHE_VERSION = 'v17';
+const CACHE_VERSION = 'v18';
 const CACHE = `kata-${CACHE_VERSION}`;
 // Map tiles live in their own cache, filled as the map is browsed. It is kept across
 // versions: there are over a thousand tiles, too many to download again at each update.
