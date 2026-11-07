@@ -715,12 +715,11 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 .popup-title {
   font: 600 .92rem inherit;
   color: var(--text);
-  margin-bottom: 4px;
+  margin-bottom: 10px;
 }
 .popup-cat {
-  font-size: .74rem;
+  font-weight: 400;
   color: var(--text-muted);
-  margin-bottom: 10px;
 }
 .popup-actions { display: flex; gap: 6px; }
 .popup-btn {

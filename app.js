@@ -441,9 +441,7 @@ function addMarkerToMap(poi) {
     div.innerHTML = `
     <div class="popup-header">
         <div>
-        <div class="popup-title">${escHtml(poi.content.title || 'Sans titre')}</div>
-        <div class="popup-cat">${catInfo.icon} ${catInfo.label}</div>
-        <div class="popup-coords-hint" style="margin-top:2px;font-size:0.68rem;opacity:0.7">${getCoordsDisplay(poi.location)}</div>
+        <div class="popup-title">${escHtml(poi.content.title || 'Sans titre')} <span class="popup-cat">(${catInfo.label})</span></div>
         </div>
         <button class="popup-fav-btn" id="popup-fav-${poi.id}"
         onclick="toggleFavoriteFromPopup('${poi.id}', this)">
@@ -458,7 +456,9 @@ function addMarkerToMap(poi) {
     </div>
     `;
 
-    loadPopupPhotos(poi.id);
+    // On passe le conteneur directement : à ce moment, le div n'est pas encore
+    // inséré dans la page, donc un getElementById ne le trouverait pas.
+    loadPopupPhotos(poi.id, div.querySelector('.popup-photos'));
     return div;
   }, { maxWidth: 260 });
 
@@ -466,15 +466,18 @@ function addMarkerToMap(poi) {
   markers[poi.id] = marker;
 }
 
-async function loadPopupPhotos(poiId) {
-    
-    
-    const container = document.getElementById(`popup-photos-${poiId}`);
-    if (!container) return;
-    
-    const photos = await dbGetByIndex('photos', 'poiId', poiId);
-    console.log("Photos brutes =", photos);
-  
+async function loadPopupPhotos(poiId, container) {
+  container = container || document.getElementById(`popup-photos-${poiId}`);
+  if (!container) return;
+
+  let photos;
+  try {
+    photos = await dbGetByIndex('photos', 'poiId', poiId);
+  } catch (err) {
+    console.error('Lecture des photos impossible', err);
+    container.innerHTML = `<div class="popup-no-photo">Photos indisponibles</div>`;
+    return;
+  }
 
   if (!photos.length) {
     container.innerHTML = `<div class="popup-no-photo">Aucune photo</div>`;
