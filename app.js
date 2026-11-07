@@ -114,6 +114,96 @@ if ('serviceWorker' in navigator) {
     registerServiceWorker().catch(err => console.error('[SW] Enregistrement impossible', err));
 }
 
+/* ------------------------------
+    CARTE HORS LIGNE
+    Le service worker ne garde une tuile que lorsqu'elle est affichée : hors ligne, les
+    niveaux de zoom jamais vus restaient blancs. On télécharge donc toute la carte
+    (~1 200 tuiles, ~70 Mo) dans le cache des tuiles, en arrière-plan et sans rien
+    retélécharger de ce qui y est déjà.
+------------------------------ */
+
+const TILES_CACHE = 'kata-tiles'; // même nom que dans sw.js
+let tilesDownload = null;
+
+// Toutes les tuiles que la carte peut demander (même calcul que ImageTileLayer).
+function allTileUrls() {
+    const { imageWidth, imageHeight, tileSize, minZoom, maxZoom } = MAP_CONFIG;
+    const urls = [];
+    for (let z = minZoom; z <= maxZoom; z++) {
+        const scale = Math.pow(2, maxZoom - z);
+        const cols = Math.ceil(Math.ceil(imageWidth / scale) / tileSize);
+        const rows = Math.ceil(Math.ceil(imageHeight / scale) / tileSize);
+        for (let x = 0; x < cols; x++) {
+            for (let y = 0; y < rows; y++) urls.push(new URL(`tiles/${z}/${x}/${y}.png`, document.baseURI).href);
+        }
+    }
+    return urls;
+}
+
+function setTilesStatus(text, busy) {
+    const desc = document.getElementById('tiles-status');
+    const btn = document.getElementById('tiles-download-btn');
+    if (desc) desc.textContent = text;
+    if (btn) btn.disabled = busy;
+}
+
+async function missingTileUrls(cache) {
+    const urls = allTileUrls();
+    const have = new Set((await cache.keys()).map(req => req.url));
+    return { total: urls.length, missing: urls.filter(url => !have.has(url)) };
+}
+
+async function refreshTilesStatus() {
+    if (tilesDownload || !('caches' in window)) return;
+    const { total, missing } = await missingTileUrls(await caches.open(TILES_CACHE));
+    setTilesStatus(missing.length
+        ? `${total - missing.length} / ${total} tuiles disponibles hors ligne.`
+        : `Toute la carte est disponible hors ligne (${total} tuiles).`, false);
+}
+
+async function downloadMapTiles({ manual = false } = {}) {
+    if (!('caches' in window)) return;
+    if (tilesDownload) return tilesDownload;
+    tilesDownload = (async () => {
+        // Demande au navigateur de ne pas effacer ces données quand l'espace manque.
+        navigator.storage?.persist?.().catch(() => {});
+        const cache = await caches.open(TILES_CACHE);
+        const { total, missing } = await missingTileUrls(cache);
+        if (!missing.length) return true;
+        let done = total - missing.length;
+        let failed = 0;
+        let next = 0;
+        setTilesStatus(`Téléchargement de la carte… ${done} / ${total}`, true);
+        // 4 téléchargements à la fois : assez rapide, sans saturer le réseau du téléphone.
+        const worker = async () => {
+            while (next < missing.length && failed < 20) {
+                const url = missing[next++];
+                try {
+                    const res = await fetch(url, { cache: 'no-cache' });
+                    if (res.ok) await cache.put(url, res);
+                    else failed++;
+                } catch {
+                    failed++;
+                }
+                done++;
+                setTilesStatus(`Téléchargement de la carte… ${done} / ${total}`, true);
+            }
+        };
+        await Promise.all([worker(), worker(), worker(), worker()]);
+        return failed === 0;
+    })();
+    try {
+        const ok = await tilesDownload;
+        if (manual) showToast(ok ? '✅ Carte disponible hors ligne' : '📶 Téléchargement incomplet, réessaie avec du réseau');
+    } catch (err) {
+        console.warn('[TILES] Téléchargement impossible', err);
+        if (manual) showToast('⚠️ Téléchargement impossible');
+    } finally {
+        tilesDownload = null;
+        refreshTilesStatus().catch(() => {});
+    }
+}
+
 // Vider le cache hors ligne ne laisserait rien pour recharger l'app : les deux outils de
 // reset vérifient d'abord que le serveur répond (navigator.onLine n'est pas fiable sur iOS).
 async function serverReachable() {
@@ -1015,7 +1105,10 @@ function switchView(viewName) {
   if (viewName === 'map') setTimeout(() => map.invalidateSize(), 10);
   if (viewName === 'list') renderList();
   if (viewName === 'photos') renderPhotosView();
-  if (viewName === 'maintenance') navigator.serviceWorker?.controller?.postMessage({ type: 'GET_VERSION' });
+  if (viewName === 'maintenance') {
+    navigator.serviceWorker?.controller?.postMessage({ type: 'GET_VERSION' });
+    refreshTilesStatus().catch(() => {});
+  }
 }
 menu.items.forEach(item => { if (item.dataset.view === 'map') item.setAttribute('aria-current', 'page'); });
 
@@ -1185,6 +1278,9 @@ async function deleteAllPois() {
     updatePoiCount();
     console.log(`✅ Paris Map initialisé — ${allPois.length} POI chargés depuis IndexedDB`);
     renderList();
+
+    // Une fois l'app affichée, compléter la carte hors ligne en arrière-plan.
+    if (navigator.onLine !== false) setTimeout(() => downloadMapTiles(), 3000);
 })();
 
 // Nouvelle fonction à ajouter
