@@ -1289,9 +1289,15 @@ async function deleteAllPois() {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
+function withTimeout(promise, ms) {
+    return Promise.race([promise, new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`pas de réponse après ${ms} ms`)), ms))]);
+}
+
 (async function init() {
-    await initDB();
-    
+    // La carte ne dépend pas de la base : on l'affiche d'abord. Avant, l'app attendait
+    // IndexedDB, et un navigateur où elle échoue ou ne répond jamais (navigateur intégré
+    // d'une messagerie, navigation privée, vieux iOS) restait sur un écran sans carte.
     // Essayer de charger la configuration dynamique de la carte
     try {
         const response = await fetch('tiles_config.json');
@@ -1307,6 +1313,13 @@ async function deleteAllPois() {
     initMap();
     updateFilterButton('map', activeCategories);
     updateFilterButton('list', activeListCategories);
+    try {
+        await withTimeout(initDB(), 5000);
+    } catch (err) {
+        console.error('❌ IndexedDB indisponible', err);
+        showToast('⚠️ Stockage indisponible dans ce navigateur : tes lieux ne seront pas enregistrés');
+        return;
+    }
     allPois = await dbGetAll('poi');
     for (const poi of allPois) addMarkerToMap(poi);
     updatePoiCount();
