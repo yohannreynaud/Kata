@@ -1111,3 +1111,9 @@ body.long-press-holding .panel,
 body.long-press-holding .panel-overlay {
   pointer-events: none !important;
 }
+
+/* Icônes dessinées des types de lieux */
+.cat-svg { width: 1.1em; height: 1.1em; flex-shrink: 0; vertical-align: -0.18em; }
+.cat-btn .cat-icon .cat-svg { width: 1.4rem; height: 1.4rem; }
+.filter-row-icon { display: inline-flex; color: var(--text); }
+.filter-row-icon .cat-svg { width: 1.25rem; height: 1.25rem; }

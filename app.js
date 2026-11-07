@@ -1,13 +1,28 @@
 // ═══════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════
-const CATEGORIES = {
-  undefined:  { label: "Undefined",     icon: "❓", color: "#6B7280" },
-  salle:     { label: "Salle",        icon: "🏠", color: "#457B9D" },
-  oeuvre:    { label: "Œuvre d'art",  icon: "🗿", color: "#E63946" },
-  repere:    { label: "Repère",       icon: "👁️", color: "#2A9D8F" },
-  avisiter:  { label: "À visiter",    icon: "🔖", color: "#F4A261" },
+// Icônes dessinées (traits noirs, même style que les icônes du menu), viewBox 24×24.
+const CAT_ICON_PATHS = {
+  undefined: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2h.01"/>',
+  salle:     '<path d="M3 8.5 12 3l9 5.5z"/><path d="M4 10.5h16"/><path d="M6 10.5v7.5M10 10.5v7.5M14 10.5v7.5M18 13v5"/><path d="M17 10.5l1 1.2-.6 1.3"/><path d="M3.5 18h17M2.5 21h19"/><path d="M11.5 5.5l1 1.2"/>',
+  oeuvre:    '<path d="M9 6.5 12 3l3 3.5"/><rect x="3" y="6.5" width="18" height="14" rx="1"/><rect x="6" y="9.5" width="12" height="8"/><path d="M8 15.5c1.5-3 3-3 4-1.5s2.5 1.5 4-2"/>',
+  repere:    '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  avisiter:  '<path d="M18 21l-6-4.5L6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/>',
+  favorite:  '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>',
 };
+function iconSvg(key, cls = 'cat-svg') {
+  const paths = CAT_ICON_PATHS[key] || CAT_ICON_PATHS.undefined;
+  return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+}
+
+const CATEGORIES = {
+  undefined:  { label: "Undefined",     color: "#6B7280" },
+  salle:     { label: "Salle",        color: "#457B9D" },
+  oeuvre:    { label: "Œuvre d'art",  color: "#E63946" },
+  repere:    { label: "Repère",       color: "#2A9D8F" },
+  avisiter:  { label: "À visiter",    color: "#F4A261" },
+};
+for (const [key, cat] of Object.entries(CATEGORIES)) cat.icon = iconSvg(key);
 function getCat(key) {
   return CATEGORIES[key] || CATEGORIES[Object.keys(CATEGORIES)[0]];
 }
@@ -462,8 +477,8 @@ function makeMarkerIcon(category, isFavorite = false) {
   const svg = `<svg viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 0C9.37 0 4 5.37 4 12c0 9 12 28 12 28s12-19 12-28C28 5.37 22.63 0 16 0z"
       fill="${cat.color}" stroke="rgba(0,0,0,.2)" stroke-width="1"/>
-    <circle cx="16" cy="12" r="6" fill="white" fill-opacity=".9"/>
-    <text x="16" y="16" text-anchor="middle" font-size="8" font-family="sans-serif">${cat.icon}</text>
+    <circle cx="16" cy="12" r="8" fill="white" fill-opacity=".95"/>
+    <g transform="translate(9.5 5.5) scale(.5417)" fill="none" stroke="#1f1f1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON_PATHS[category] || CAT_ICON_PATHS.undefined}</g>
     ${favBadge}
   </svg>`;
   return L.divIcon({
@@ -597,7 +612,7 @@ function openFilterMenu(context) {
          style="color:#F5C400"
          data-filter="favorites"
          onclick="toggleFavoritesFilter(this)">
-      <span class="filter-row-icon">⭐</span>
+      <span class="filter-row-icon">${iconSvg('favorite')}</span>
       <span class="filter-row-label">Favoris</span>
       <span class="filter-row-check"><span class="filter-row-check-icon">✓</span></span>
     </div>
