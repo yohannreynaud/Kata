@@ -311,7 +311,13 @@ function initMap() {
     new ImageTileLayer('tiles/{z}/{x}/{y}.png', {
         tileSize,
         minZoom,
-        maxZoom,
+        // Pendant un pincement au-delà du zoom max, Leaflet dépasse temporairement
+        // maxZoom avant de rebondir. Si la couche s'arrêtait à maxZoom, elle effacerait
+        // ses tuiles pendant ce dépassement (carte blanche). On l'autorise donc à
+        // agrandir les tuiles du niveau le plus précis (maxNativeZoom) au-delà ;
+        // la carte, elle, reste bornée à maxZoom et revient toujours au zoom max.
+        maxNativeZoom: maxZoom,
+        maxZoom:       maxZoom + 6,
         bounds,
         noWrap: true,
         errorTileUrl: '',
