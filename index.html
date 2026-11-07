@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Paris'PAM</title>
+  <title>KatApp</title>
   <meta name="theme-color" content="#b3261e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Paris'PAM">
+  <meta name="apple-mobile-web-app-title" content="KatApp">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192.svg">
   <link rel="icon" href="assets/icons/icon-192.svg">
@@ -28,7 +28,7 @@
         <line x1="4" y1="18" x2="20" y2="18"/>
       </svg>
     </button>
-    <h1 id="page-title">Paris'PAM</h1>
+    <h1 id="page-title">KatApp</h1>
     <span class="poi-count" id="poi-count" data-for="map">0 lieux</span>
     <span class="poi-count" id="poi-count-list" data-for="list">0 lieux</span>
     <span class="poi-count" id="poi-count-photos" data-for="photos">0 photo</span>
@@ -56,7 +56,7 @@
   </nav>
 
   <!-- ─── Vue : Carte ─────────────────────────── -->
-  <div id="view-map" class="app-view active" data-title="Paris'PAM">
+  <div id="view-map" class="app-view active" data-title="KatApp">
     <div class="main">
       <div id="map"></div>
 
@@ -131,6 +131,13 @@
     <div class="content">
       <div class="settings-row">
         <div>
+          <div class="settings-label">Carte hors ligne</div>
+          <div class="settings-desc" id="tiles-status">Télécharge toute la carte pour zoomer sans réseau.</div>
+        </div>
+        <button class="btn-secondary" id="tiles-download-btn" type="button" onclick="downloadMapTiles({ manual: true })">Télécharger</button>
+      </div>
+      <div class="settings-row">
+        <div>
           <div class="settings-label">Vider le cache</div>
           <div class="settings-desc">Supprime les fichiers mis en cache par le Service Worker.</div>
         </div>
@@ -165,6 +172,11 @@
                 </div>
             </div>
         </div>
+
+  <div id="update-banner" class="update-banner" role="status" hidden>
+    <span>Une nouvelle version est disponible.</span>
+    <button id="update-btn" class="update-btn" type="button">Mettre à jour</button>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
