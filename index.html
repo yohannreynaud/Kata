@@ -131,6 +131,13 @@
     <div class="content">
       <div class="settings-row">
         <div>
+          <div class="settings-label">Carte hors ligne</div>
+          <div class="settings-desc" id="tiles-status">Télécharge toute la carte pour zoomer sans réseau.</div>
+        </div>
+        <button class="btn-secondary" id="tiles-download-btn" type="button" onclick="downloadMapTiles({ manual: true })">Télécharger</button>
+      </div>
+      <div class="settings-row">
+        <div>
           <div class="settings-label">Vider le cache</div>
           <div class="settings-desc">Supprime les fichiers mis en cache par le Service Worker.</div>
         </div>

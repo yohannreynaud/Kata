@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever an app file changes so phones pick up the new version.
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE = `kata-${CACHE_VERSION}`;
 // Map tiles live in their own cache, filled as the map is browsed. It is kept across
 // versions: there are over a thousand tiles, too many to download again at each update.
@@ -45,15 +45,65 @@ self.addEventListener('message', event => {
   if (event.data?.type === 'GET_VERSION') event.source.postMessage({ type: 'SW_VERSION', version: CACHE_VERSION });
 });
 
-// Tiles: cache first, and keep every tile fetched so the parts of the map already seen
-// work offline.
+// Tiles: cache first, and keep every tile fetched. The app also downloads the whole map
+// into this cache in the background (see downloadMapTiles in app.js), so every zoom level
+// works offline.
 async function tileResponse(request) {
   const cache = await caches.open(TILES_CACHE);
   const cached = await cache.match(request);
   if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok) cache.put(request, response.clone());
-  return response;
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (err) {
+    // Offline and this tile was never downloaded: show an enlarged piece of a less zoomed
+    // tile instead of a blank square.
+    const fallback = await parentTileFallback(cache, request.url).catch(() => null);
+    if (fallback) return fallback;
+    throw err;
+  }
+}
+
+const TILE_PATH = /tiles\/(\d+)\/(\d+)\/(\d+)\.png$/;
+let tileConfig = null;
+
+async function getTileConfig() {
+  if (tileConfig) return tileConfig;
+  const res = await caches.match('tiles_config.json', { ignoreSearch: true });
+  tileConfig = res ? await res.json() : { imageHeight: 6910, tileSize: 256, maxZoom: 5 };
+  return tileConfig;
+}
+
+// Number of tile rows at zoom z (same formula as ImageTileLayer in app.js).
+function tileRows(cfg, z) {
+  const scale = Math.pow(2, cfg.maxZoom - z);
+  return Math.ceil(Math.ceil(cfg.imageHeight / scale) / cfg.tileSize);
+}
+
+async function parentTileFallback(cache, url) {
+  const match = TILE_PATH.exec(new URL(url).pathname);
+  if (!match || typeof OffscreenCanvas === 'undefined') return null;
+  const cfg = await getTileConfig();
+  const size = cfg.tileSize;
+  const [z, x, fileY] = match.slice(1).map(Number);
+  // File names count rows from the bottom; Leaflet counts them from the top.
+  const y = tileRows(cfg, z) - 1 - fileY;
+  for (let k = 1; k <= z; k++) {
+    const pz = z - k, px = x >> k, py = y >> k;
+    const parentUrl = new URL(`tiles/${pz}/${px}/${tileRows(cfg, pz) - 1 - py}.png`, self.registration.scope).href;
+    const parent = await cache.match(parentUrl);
+    if (!parent) continue;
+    const factor = 1 << k;
+    const part = size / factor;
+    const bitmap = await createImageBitmap(await parent.blob());
+    const canvas = new OffscreenCanvas(size, size);
+    canvas.getContext('2d').drawImage(bitmap, (x % factor) * part, (y % factor) * part, part, part, 0, 0, size, size);
+    const blob = await canvas.convertToBlob({ type: 'image/png' });
+    // Not cached: the real tile replaces it as soon as it can be downloaded.
+    return new Response(blob, { headers: { 'Content-Type': 'image/png' } });
+  }
+  return null;
 }
 
 // App files: cache first, so the app opens with no network at all.
