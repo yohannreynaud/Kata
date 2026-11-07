@@ -118,8 +118,9 @@ if ('serviceWorker' in navigator) {
     CARTE HORS LIGNE
     Le service worker ne garde une tuile que lorsqu'elle est affichée : hors ligne, les
     niveaux de zoom jamais vus restaient blancs. On télécharge donc toute la carte
-    (~1 200 tuiles, ~70 Mo) dans le cache des tuiles, en arrière-plan et sans rien
-    retélécharger de ce qui y est déjà.
+    (~1 200 tuiles, ~70 Mo) dans le cache des tuiles, seulement quand l'utilisateur le
+    demande depuis Maintenance, sans retélécharger ce qui y est déjà. La carte affiche
+    toujours les tuiles une par une : seul le stockage est concerné, pas la mémoire.
 ------------------------------ */
 
 const TILES_CACHE = 'kata-tiles'; // même nom que dans sw.js
@@ -1282,8 +1283,6 @@ async function deleteAllPois() {
     console.log(`✅ KatApp initialisée — ${allPois.length} POI chargés depuis IndexedDB`);
     renderList();
 
-    // Une fois l'app affichée, compléter la carte hors ligne en arrière-plan.
-    if (navigator.onLine !== false) setTimeout(() => downloadMapTiles(), 3000);
 })();
 
 // Nouvelle fonction à ajouter

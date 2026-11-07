@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever an app file changes so phones pick up the new version.
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE = `kata-${CACHE_VERSION}`;
 // Map tiles live in their own cache, filled as the map is browsed. It is kept across
 // versions: there are over a thousand tiles, too many to download again at each update.
@@ -45,8 +45,8 @@ self.addEventListener('message', event => {
   if (event.data?.type === 'GET_VERSION') event.source.postMessage({ type: 'SW_VERSION', version: CACHE_VERSION });
 });
 
-// Tiles: cache first, and keep every tile fetched. The app also downloads the whole map
-// into this cache in the background (see downloadMapTiles in app.js), so every zoom level
+// Tiles: cache first, and keep every tile fetched. The user can also download the whole map
+// into this cache from Maintenance (see downloadMapTiles in app.js), so every zoom level
 // works offline.
 async function tileResponse(request) {
   const cache = await caches.open(TILES_CACHE);
