@@ -384,13 +384,21 @@ function setupLongPressToAdd() {
         press = null;
     }
 
-    // Après un appui prolongé, le relâchement produit un « click » : on l'avale pour
-    // qu'il ne ferme pas le formulaire qui vient de s'ouvrir sous le doigt.
-    function swallowNextClick() {
-        const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
-        document.addEventListener('click', swallow, { capture: true, once: true });
-        setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 800);
-    }
+    // Après un appui prolongé, le relâchement peut produire un « click » qui refermerait
+    // le formulaire ouvert sous le doigt. On n'avale QUE ce click-là : il arrive juste
+    // après le relâchement. iOS n'en envoie pas après un appui long ; on ne doit donc
+    // jamais avaler le tap suivant de l'utilisateur (sinon son premier tap dans le
+    // formulaire serait sans effet). Tout nouvel appui annule la protection.
+    let firedPointerId = null;
+    let swallowUntil = 0;
+    document.addEventListener('click', ev => {
+        if (Date.now() < swallowUntil) {
+            swallowUntil = 0;
+            ev.preventDefault();
+            ev.stopPropagation();
+        }
+    }, { capture: true });
+    document.addEventListener('pointerdown', () => { swallowUntil = 0; }, { capture: true });
 
     container.addEventListener('pointerdown', e => {
         activePointers.add(e.pointerId);
@@ -413,9 +421,10 @@ function setupLongPressToAdd() {
             id: e.pointerId, x, y, ring,
             timer: setTimeout(() => {
                 const latlng = map.containerPointToLatLng(L.point(x - rect.left, y - rect.top));
+                const id = press.id;
                 cancelPress();
                 if (navigator.vibrate) navigator.vibrate(30);
-                swallowNextClick();
+                firedPointerId = id;
                 pendingLatLng = { lat: latlng.lat, lng: latlng.lng };
                 openAddForm();
             }, LONG_PRESS_DELAY),
@@ -430,6 +439,10 @@ function setupLongPressToAdd() {
     const release = e => {
         activePointers.delete(e.pointerId);
         if (press && e.pointerId === press.id) cancelPress();
+        if (e.pointerId === firedPointerId) {
+            firedPointerId = null;
+            if (e.type === 'pointerup') swallowUntil = Date.now() + 350;
+        }
     };
     // Sur document : le relâchement peut avoir lieu hors de la carte.
     document.addEventListener('pointerup', release);
