@@ -138,15 +138,22 @@
       </div>
       <div class="settings-row">
         <div>
+          <div class="settings-label">Supprimer la carte hors ligne</div>
+          <div class="settings-desc">Libère l'espace de la carte téléchargée. Le Hard Reset la conserve.</div>
+        </div>
+        <button class="btn-secondary" type="button" onclick="deleteMapTiles()">Supprimer</button>
+      </div>
+      <div class="settings-row">
+        <div>
           <div class="settings-label">Vider le cache</div>
-          <div class="settings-desc">Supprime les fichiers mis en cache par le Service Worker.</div>
+          <div class="settings-desc">Supprime les fichiers de l'app mis en cache, sans toucher à la carte téléchargée.</div>
         </div>
         <button class="btn-secondary" type="button" onclick="clearCache()">Vider</button>
       </div>
       <div class="settings-row">
         <div>
           <div class="settings-label">Réinitialisation complète</div>
-          <div class="settings-desc">Vide le cache et réenregistre le Service Worker, mais conserve vos Lieux.</div>
+          <div class="settings-desc">Vide le cache et réenregistre le Service Worker, mais conserve vos Lieux et la carte téléchargée.</div>
         </div>
         <button class="btn-danger" type="button" onclick="hardResetPWA()">Hard Reset</button>
       </div>
