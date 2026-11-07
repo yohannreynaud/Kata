@@ -1,4 +1,4 @@
-const SW_VERSION = 'v3';
+const SW_VERSION = 'v4';
 const CACHE_NAME = `paris-map-app-${SW_VERSION}`;
 const ASSETS_TO_CACHE = [
   '/', '/index.html', '/style.css', '/app.js', '/db.js', '/libs/leaflet.min.js', '/libs/leaflet.min.css', '/tiles_config.json'
