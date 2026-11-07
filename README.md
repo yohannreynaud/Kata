@@ -15,12 +15,12 @@ Il s'agit d'une carte de Paris, interactive, dans laquelle il est possible de na
 
 L'application se révèlerait particulièrement pratique dans un intérêt touristique notamment, afin de se souvenir de ses voyages, ainsi que des endroits visités. 
 
-Le principe est simple : on navigue sur la carte à la manière d'une carte virtuelle classique, et par un double-clic, on peut ajouter un "point d'intérêt" , dans lequel nous pouvons ajouter une description (de ce que nous avons visité à cet endroit, par exemple) ainsi que des photos.
+Le principe est simple : on navigue sur la carte à la manière d'une carte virtuelle classique, et par un appui prolongé (doigt ou souris), on peut ajouter un "point d'intérêt" , dans lequel nous pouvons ajouter une description (de ce que nous avons visité à cet endroit, par exemple) ainsi que des photos.
 Liste exhaustive des fonctionnalités : 
 - L'application est une PWA, elle peut donc être installée sur mobile. 
 - L'application peut être utilisée hors ligne grâce à l'utilisation d'un service worker qui stocke les données en cache.
 - L'application propose une carte (Leaflet) interactive, centrée sur Paris. Leaflet propose les fonctionnalités classiques d'une carte interactive : zoom, déplacement, etc.
-- Il est possible, **par un double-clic**, de faire apparaître un pop-up sur la carte permettant d'ajouter un point d'intérêt avec au choix : une description, une catégorie, un ou plusieurs tags et une ou plusieurs photos. 
+- Il est possible, **par un appui prolongé**, de faire apparaître un pop-up sur la carte permettant d'ajouter un point d'intérêt avec au choix : une description, une catégorie, un ou plusieurs tags et une ou plusieurs photos. 
 - On peut ensuite cliquer sur les points d'intérêts déjà créés pour voir leur description, leurs photos, leurs catégories et leurs tags.
 - Il est possible de modifier les points d'intérêts déjà créés.
 - Il est possible de supprimer les points d'intérêts déjà créés.
