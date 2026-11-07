@@ -1123,3 +1123,9 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 @keyframes long-press-grow {
   to { transform: scale(1); opacity: 1; }
 }
+
+/* Icônes dessinées des types de lieux */
+.cat-svg { width: 1.1em; height: 1.1em; flex-shrink: 0; vertical-align: -0.18em; }
+.cat-btn .cat-icon .cat-svg { width: 1.4rem; height: 1.4rem; }
+.filter-row-icon { display: inline-flex; color: var(--text); }
+.filter-row-icon .cat-svg { width: 1.25rem; height: 1.25rem; }
