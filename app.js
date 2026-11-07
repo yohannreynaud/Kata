@@ -357,83 +357,85 @@ function initMap() {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    let lastTapTime = 0;
-    let lastTapPos = null;
-    let lastSyntheticAddTime = 0;
-    const DOUBLE_TAP_DELAY = 350;
-    const TAP_MOVE_TOLERANCE = 15;
+    setupLongPressToAdd();
+}
 
-    map.on('contextmenu', e => {
-        // Bloque le menu contextuel natif iOS/Android
-        e.originalEvent.preventDefault();
+// ═══════════════════════════════════════════════
+// APPUI PROLONGÉ → NOUVEAU LIEU
+// ═══════════════════════════════════════════════
+// Un appui prolongé (doigt ou souris) sans bouger ouvre le formulaire de création.
+// Dès que le doigt bouge, qu'un second doigt arrive (pincement) ou qu'on relâche,
+// l'appui est annulé : le déplacement et le zoom de la carte ne sont pas gênés.
+const LONG_PRESS_DELAY = 550;        // ms
+const LONG_PRESS_MOVE_TOLERANCE = 10; // px
+
+function setupLongPressToAdd() {
+    const container = map.getContainer();
+    let press = null;          // { id, x, y, timer, ring }
+    const activePointers = new Set();
+
+    // Bloque le menu contextuel natif (iOS/Android le déclenchent sur un appui prolongé).
+    container.addEventListener('contextmenu', e => e.preventDefault());
+
+    function cancelPress() {
+        if (!press) return;
+        clearTimeout(press.timer);
+        press.ring.remove();
+        press = null;
+    }
+
+    // Après un appui prolongé, le relâchement produit un « click » : on l'avale pour
+    // qu'il ne ferme pas le formulaire qui vient de s'ouvrir sous le doigt.
+    function swallowNextClick() {
+        const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
+        document.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 800);
+    }
+
+    container.addEventListener('pointerdown', e => {
+        activePointers.add(e.pointerId);
+        if (activePointers.size > 1) { cancelPress(); return; }   // pincement
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        // Pas sur un pin, un bouton de zoom ou une bulle ouverte.
+        if (e.target.closest('.leaflet-marker-icon, .leaflet-control, .leaflet-popup')) return;
+
+        cancelPress();
+        const rect = container.getBoundingClientRect();
+        const ring = document.createElement('div');
+        ring.className = 'long-press-ring';
+        ring.style.left = `${e.clientX - rect.left}px`;
+        ring.style.top = `${e.clientY - rect.top}px`;
+        ring.style.animationDuration = `${LONG_PRESS_DELAY}ms`;
+        container.appendChild(ring);
+
+        const x = e.clientX, y = e.clientY;
+        press = {
+            id: e.pointerId, x, y, ring,
+            timer: setTimeout(() => {
+                const latlng = map.containerPointToLatLng(L.point(x - rect.left, y - rect.top));
+                cancelPress();
+                if (navigator.vibrate) navigator.vibrate(30);
+                swallowNextClick();
+                pendingLatLng = { lat: latlng.lat, lng: latlng.lng };
+                openAddForm();
+            }, LONG_PRESS_DELAY),
+        };
     });
 
-    map.on('dblclick', e => {
-        if (Date.now() - lastSyntheticAddTime <= DOUBLE_TAP_DELAY) {
-            return;
-        }
-        if (!e.latlng) return;
-        pendingLatLng = { lat: e.latlng.lat, lng: e.latlng.lng };
-        openAddForm();
+    container.addEventListener('pointermove', e => {
+        if (!press || e.pointerId !== press.id) return;
+        if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > LONG_PRESS_MOVE_TOLERANCE) cancelPress();
     });
 
-    const mapContainer = map.getContainer();
-    mapContainer.addEventListener('touchstart', e => {
-        if (e.touches.length !== 1) {
-            lastTapTime = 0;
-            lastTapPos = null;
-            return;
-        }
-        const touch = e.touches[0];
-        lastTapPos = { x: touch.clientX, y: touch.clientY };
-    }, { passive: true });
-
-    mapContainer.addEventListener('touchmove', e => {
-        if (!lastTapPos || e.touches.length !== 1) return;
-        const touch = e.touches[0];
-        const dx = touch.clientX - lastTapPos.x;
-        const dy = touch.clientY - lastTapPos.y;
-        if (Math.sqrt(dx * dx + dy * dy) > TAP_MOVE_TOLERANCE) {
-            lastTapTime = 0;
-            lastTapPos = null;
-        }
-    }, { passive: true });
-
-    mapContainer.addEventListener('touchend', e => {
-        if (!lastTapPos) return;
-        const touch = e.changedTouches[0];
-        if (!touch) {
-            lastTapTime = 0;
-            lastTapPos = null;
-            return;
-        }
-
-        const dx = touch.clientX - lastTapPos.x;
-        const dy = touch.clientY - lastTapPos.y;
-        if (Math.sqrt(dx * dx + dy * dy) > TAP_MOVE_TOLERANCE) {
-            lastTapTime = 0;
-            lastTapPos = null;
-            return;
-        }
-
-        const now = Date.now();
-        if (now - lastTapTime <= DOUBLE_TAP_DELAY) {
-            const containerPoint = map.mouseEventToContainerPoint(touch);
-            const latlng = map.containerPointToLatLng(containerPoint);
-            pendingLatLng = { lat: latlng.lat, lng: latlng.lng };
-            openAddForm();
-            lastSyntheticAddTime = now;
-            lastTapTime = 0;
-            lastTapPos = null;
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
-
-        lastTapTime = now;
-        lastTapPos = null;
-    }, { passive: false });
-
+    const release = e => {
+        activePointers.delete(e.pointerId);
+        if (press && e.pointerId === press.id) cancelPress();
+    };
+    // Sur document : le relâchement peut avoir lieu hors de la carte.
+    document.addEventListener('pointerup', release);
+    document.addEventListener('pointercancel', release);
+    map.on('movestart zoomstart', cancelPress);
+    window.addEventListener('blur', cancelPress);
 }
 
 // ═══════════════════════════════════════════════
