@@ -63,165 +63,112 @@ const ImageTileLayer = L.TileLayer.extend({
 
 
 /* ------------------------------
-    ENREGISTREMENT DU SERVICE WORKER
+    SERVICE WORKER ET MISES À JOUR
+    Une nouvelle version de sw.js s'installe en arrière-plan et attend. La bannière
+    permet de l'activer, puis la page se recharge. Rien ne change sous les pieds de
+    l'utilisateur tant qu'il n'a pas cliqué (même approche que l'app Flash-cards).
 ------------------------------ */
 
-if ('serviceWorker' in navigator) { // Teste si le navigateur supporte les service workers
-    window.addEventListener('load', async () => { // vraie une fois que la page est complètement chargée
-        
-        // Si un SW contrôle déjà la page, on lui demande sa version pour l'afficher dans la console (utile aussi pour vérifier que le skipWaiting a bien fonctionné après une mise à jour).
-        if (navigator.serviceWorker.controller) {
-            console.log('[SW] Un SW contrôle déjà cette page. Récupération de sa version…');
-            navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' });
-        }
+let reloadOnUpdate = false;
 
-        console.log('[SW] Récupération de la dernière version du SW (sw.js) mise à disposition par le serveur…');
-        // représente l’inscription du SW pour le scope courant (ici : /pwa/). C’est un objet qui contient des infos sur le SW installé, et qui émet des événements liés à son cycle de vie (install, updatefound, etc.).
-        const registration = await navigator.serviceWorker.register('sw.js');
-        console.log('[SW] La version du SW du serveur est récupérée. Comparaison avec le SW actif…');
-        /*
-        Précisions sur la gestion des SW par le navigateur : un SW peut avoir trois états : active (contrôle la page), waiting (en attente de prendre le contrôle) et installing (en cours d'installation).
-        Au moment du register(), on pourrait se retrouver avec 3 SW : 1 SW active, 1 SW caiting et 1 SW installing. 
-        En réalité le navigateur éjecte automatiquement le SW waiting dès qu'il détecte un SW installing (le SW installing deviendra le nouveau SW waiting).
-        */
-        if (registration.active && !registration.waiting && !registration.installing) {
-            console.log('[SW] Le SW chargé depuis le serveur est identique au SW actif : aucune mise à jour requise.');
-        }
-
-        /*
-        Au moment où on recharge la page, on vérifie si un SW est en attente de prise de contrôle (waiting)
-        Cela arrive quand un SW a été précédement installé mais n'a jamais
-        pu prendre le contrôle (pas de skipWaiting, onglet non fermé).
-        On a alors 2 SW :
-        - N°1 : active  (contrôle la page)
-        - N°2 : waiting (prêt à prendre le contrôle dès skipWaiting)
-        */
-        if (registration.waiting) { // vrai si un SW (N°2) est  installé et en attente de prendre le contrôle (waiting) → on affiche la bannière qui permet de déclencher skipWaiting et ainsi activer le nouveau SW.
-            console.log('[SW] Un SW a été installé, il est en attente de prise de contrôle. Veuillez rafraîchir la page pour l\'activer.');
-            showUpdateBanner(registration);
-        }
-
-        // EventListener qui détecte l'arrivée d'un nouveau SW (updatefound) → on affiche la bannière qui permet de déclencher skipWaiting et ainsi activer le nouveau SW.
-        registration.addEventListener('updatefound', () => {
-            console.log('[SW] Nouvelle version du SW trouvée → tentative d\'installation…');
-            const newWorker = registration.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed') {
-                    console.log('[SW] Nouveau SW installé et prêt à remplacer le SW actif → Veuillez valider le changement de SW en cliquant sur le bouton de la bannière de mise à jour.');
-                    showUpdateBanner(registration);
-                }
-            });
-        });
-
-        // EventListener qui détecte le changement de SW controlant la page (controllerchange) → on recharge la page pour actualiser l\'affichage des ressources.
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('[SW] Changement de SW controlant la page → reload de la page pour actualiser l\'affichage des ressources');
-            window.location.reload();
-        });
-
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data?.type === 'SW_VERSION') {
-                console.log('[SW] Version du SW actif :', event.data.version);
-                document.getElementById('sw-version').textContent = `Service Worker ${event.data.version}`;
-            }
-        });
-
-        /* ------------------------------
-        POLLING PÉRIODIQUE
-        Vérifie toutes les 60s si sw.js a changé sur le serveur.
-        ------------------------------ */
-        setInterval(async () => {
-            try {
-                await registration.update();
-                console.log('[SW] Vérification mise à jour…');
-            } catch (err) {
-                console.warn('[SW] Échec vérification mise à jour', err);
-            }
-        }, 60 * 1000); // toutes les 60 secondes
-    });
+function showUpdateBanner(reg) {
+    document.getElementById('update-banner').hidden = false;
+    document.getElementById('update-btn').onclick = () => {
+        if (!reg.waiting) return window.location.reload();
+        reloadOnUpdate = true;
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    };
 }
 
+async function registerServiceWorker() {
+    const reg = await navigator.serviceWorker.register('sw.js');
+    // Une version installée lors d'une visite précédente et toujours en attente.
+    if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg);
+    reg.addEventListener('updatefound', () => {
+        const worker = reg.installing;
+        worker?.addEventListener('statechange', () => {
+            // Sans contrôleur, c'est la toute première installation, pas une mise à jour.
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(reg);
+        });
+    });
+    // On ne recharge que si l'utilisateur l'a demandé : la première installation et le
+    // hard reset changent aussi de contrôleur.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloadOnUpdate) window.location.reload();
+    });
+    // Une PWA installée peut rester ouverte des jours : on cherche une nouvelle version
+    // quand elle revient au premier plan, et toutes les heures tant qu'elle reste ouverte.
+    const checkForUpdate = () => reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+    });
+    setInterval(checkForUpdate, 60 * 60 * 1000);
+}
 
-function showUpdateBanner(registration) {
-    /* ------------------------------
-        BANNIÈRE DE MISE À JOUR DU SW
-    ------------------------------ */
-    if (document.getElementById('pwa-update-banner')) return;
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'SW_VERSION') {
+            document.getElementById('sw-version').textContent = `Service Worker ${event.data.version}`;
+        }
+    });
+    registerServiceWorker().catch(err => console.error('[SW] Enregistrement impossible', err));
+}
 
-    const banner = document.createElement('div');
-    banner.id = 'pwa-update-banner';
-    banner.className = 'update-banner';
-
-    const text = document.createElement('span');
-    text.textContent = 'Une nouvelle version est disponible.';
-
-    const updateBtn = document.createElement('button');
-    updateBtn.textContent = 'Mettre à jour';
-    updateBtn.className = 'update-btn';
-    updateBtn.type = 'button';
-
-    updateBtn.addEventListener('click', () => {
-    if (registration.waiting) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+// Vider le cache hors ligne ne laisserait rien pour recharger l'app : les deux outils de
+// reset vérifient d'abord que le serveur répond (navigator.onLine n'est pas fiable sur iOS).
+async function serverReachable() {
+    try {
+        const res = await fetch(`sw.js?check=${Date.now()}`, { cache: 'no-store' });
+        return res.ok;
+    } catch {
+        return false;
     }
-    });
-
-    banner.appendChild(text);
-    banner.appendChild(updateBtn);
-    document.body.appendChild(banner);
 }
 
+async function ensureOnline() {
+    if (await serverReachable()) return true;
+    showToast('📶 Connecte-toi à Internet d\'abord');
+    return false;
+}
+
+async function clearCache() {
+    if (!confirm('Vider le cache de l\'application ?')) return;
+    if (!(await ensureOnline())) return;
+    for (const key of await caches.keys()) await caches.delete(key);
+    showToast('✅ Cache vidé');
+}
+
+// Reset complet : mise à jour, activation d'un SW en attente, vidage de tous les caches,
+// désenregistrement, rechargement. IndexedDB n'est pas touchée : les lieux restent.
 async function hardResetPWA() {
-    /* ------------------------------
-        RESET COMPLET DE LA PWA
-    ------------------------------ */
+    if (!confirm('Réinitialiser complètement l\'application ? Tes lieux sont conservés.')) return;
+    if (!(await ensureOnline())) return;
     console.log('[RESET] Réinitialisation complète…');
-
-    // FIX : on désactive le listener controllerchange AVANT de déclencher
-    // skipWaiting, pour éviter que le reload automatique interrompe les
-    // étapes suivantes (vidage des caches, unregister) qui n'auraient
-    // jamais le temps de s'exécuter.
-    navigator.serviceWorker.oncontrollerchange = null;
-
-    const reg = await navigator.serviceWorker.getRegistration();
+    const reg = await navigator.serviceWorker?.getRegistration();
 
     try {
-    // 1) Forcer une mise à jour
-    if (reg) {
-        console.log('[RESET] registration.update()');
-        await reg.update();
-    }
+        // 1) Forcer une mise à jour (on continue même si elle échoue)
+        try { await reg?.update(); } catch (err) { console.warn('[RESET] update() impossible', err); }
 
-    // 2) Forcer skipWaiting si un SW est en attente
-    if (reg?.waiting) {
-        console.log('[RESET] skipWaiting()');
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        // On attend que le nouveau SW prenne le contrôle avant de continuer
-        await new Promise(resolve => {
-        navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
-        });
-    }
+        // 2) Forcer skipWaiting si un SW est en attente, sans bloquer plus de 3 s
+        if (reg?.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            await new Promise(resolve => {
+                navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+                setTimeout(resolve, 3000);
+            });
+        }
 
-    // 3) Vider tous les caches
-    const keys = await caches.keys();
-    for (const key of keys) {
-        console.log('[RESET] Suppression du cache', key);
-        await caches.delete(key);
-    }
+        // 3) Vider tous les caches
+        for (const key of await caches.keys()) await caches.delete(key);
 
-    // 4) Désenregistrer le SW
-    if (reg) {
-        console.log('[RESET] unregister()');
-        await reg.unregister();
-    }
-
+        // 4) Désenregistrer le SW
+        await reg?.unregister();
     } catch (err) {
-    console.error('[RESET] Erreur', err);
+        console.error('[RESET] Erreur', err);
     }
 
-    // 5) Reload final
-    console.log('[RESET] Reload');
+    // 5) Rechargement final
     window.location.reload();
 }
 
@@ -1212,12 +1159,6 @@ async function deleteAllPois() {
   showToast('🗑️ Tous les lieux ont été supprimés');
 }
 
-async function clearCache() {
-  if (!confirm('Vider le cache de l\'application ?')) return;
-  const keys = await caches.keys();
-  for (const key of keys) await caches.delete(key);
-  showToast('✅ Cache vidé');
-}
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
