@@ -1242,7 +1242,7 @@ async function clearCache() {
     allPois = await dbGetAll('poi');
     for (const poi of allPois) addMarkerToMap(poi);
     updatePoiCount();
-    console.log(`✅ Paris Map initialisé — ${allPois.length} POI chargés depuis IndexedDB`);
+    console.log(`✅ KatApp initialisée — ${allPois.length} POI chargés depuis IndexedDB`);
     renderList();
 })();
 
