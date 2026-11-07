@@ -371,7 +371,7 @@ const LONG_PRESS_MOVE_TOLERANCE = 10; // px
 
 function setupLongPressToAdd() {
     const container = map.getContainer();
-    let press = null;          // { id, x, y, timer, ring }
+    let press = null;          // { id, x, y, timer }
     const activePointers = new Set();
 
     // Bloque le menu contextuel natif (iOS/Android le déclenchent sur un appui prolongé).
@@ -380,7 +380,6 @@ function setupLongPressToAdd() {
     function cancelPress() {
         if (!press) return;
         clearTimeout(press.timer);
-        press.ring.remove();
         press = null;
     }
 
@@ -409,22 +408,20 @@ function setupLongPressToAdd() {
 
         cancelPress();
         const rect = container.getBoundingClientRect();
-        const ring = document.createElement('div');
-        ring.className = 'long-press-ring';
-        ring.style.left = `${e.clientX - rect.left}px`;
-        ring.style.top = `${e.clientY - rect.top}px`;
-        ring.style.animationDuration = `${LONG_PRESS_DELAY}ms`;
-        container.appendChild(ring);
 
         const x = e.clientX, y = e.clientY;
         press = {
-            id: e.pointerId, x, y, ring,
+            id: e.pointerId, x, y,
             timer: setTimeout(() => {
                 const latlng = map.containerPointToLatLng(L.point(x - rect.left, y - rect.top));
                 const id = press.id;
                 cancelPress();
                 if (navigator.vibrate) navigator.vibrate(30);
                 firedPointerId = id;
+                // Le doigt est encore posé là où le formulaire apparaît : tant qu'il n'est
+                // pas relâché, le formulaire ignore les appuis, sinon le relâchement
+                // sélectionnerait le champ de saisie situé sous le doigt.
+                document.body.classList.add('long-press-holding');
                 pendingLatLng = { lat: latlng.lat, lng: latlng.lng };
                 openAddForm();
             }, LONG_PRESS_DELAY),
@@ -442,6 +439,8 @@ function setupLongPressToAdd() {
         if (e.pointerId === firedPointerId) {
             firedPointerId = null;
             if (e.type === 'pointerup') swallowUntil = Date.now() + 350;
+            // On laisse passer le click/focus de compatibilité émis après le relâchement.
+            setTimeout(() => document.body.classList.remove('long-press-holding'), 350);
         }
     };
     // Sur document : le relâchement peut avoir lieu hors de la carte.
