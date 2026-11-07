@@ -133,15 +133,12 @@
         <div>
           <div class="settings-label">Carte hors ligne</div>
           <div class="settings-desc" id="tiles-status">Télécharge toute la carte pour zoomer sans réseau.</div>
+          <div class="settings-desc">Conservée par le Hard Reset.</div>
         </div>
-        <button class="btn-secondary" id="tiles-download-btn" type="button" onclick="downloadMapTiles({ manual: true })">Télécharger</button>
-      </div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-label">Supprimer la carte hors ligne</div>
-          <div class="settings-desc">Libère l'espace de la carte téléchargée. Le Hard Reset la conserve.</div>
+        <div class="settings-actions">
+          <button class="btn-secondary" id="tiles-download-btn" type="button" onclick="downloadMapTiles({ manual: true })">Télécharger</button>
+          <button class="btn-secondary" id="tiles-delete-btn" type="button" onclick="deleteMapTiles()">Dé-télécharger</button>
         </div>
-        <button class="btn-secondary" type="button" onclick="deleteMapTiles()">Supprimer</button>
       </div>
       <div class="settings-row">
         <div>

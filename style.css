@@ -205,6 +205,8 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 }
 
 .settings-row > div { flex: 1; }
+/* Plusieurs boutons pour une même ligne : empilés à droite, de même largeur. */
+.settings-row > .settings-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; }
 .settings-label { font-weight: 600; }
 .settings-desc { margin-top: 2px; font-size: 0.85rem; color: var(--muted); }
 .settings-version { padding-top: 8px; font-size: 0.8rem; color: var(--muted); text-align: right; }
