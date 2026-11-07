@@ -143,9 +143,11 @@ function allTileUrls() {
 
 function setTilesStatus(text, busy) {
     const desc = document.getElementById('tiles-status');
-    const btn = document.getElementById('tiles-download-btn');
     if (desc) desc.textContent = text;
-    if (btn) btn.disabled = busy;
+    for (const id of ['tiles-download-btn', 'tiles-delete-btn']) {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = busy;
+    }
 }
 
 async function missingTileUrls(cache) {
@@ -238,10 +240,10 @@ async function deleteAppCaches() {
 }
 
 async function deleteMapTiles() {
-    if (!confirm('Supprimer la carte téléchargée ? Il faudra la retélécharger pour zoomer hors ligne.')) return;
+    if (!confirm('Dé-télécharger la carte ? Il faudra la retélécharger pour zoomer hors ligne.')) return;
     if (tilesDownload) return showToast('⏳ Téléchargement en cours, attends la fin');
     await caches.delete(TILES_CACHE);
-    showToast('🗑️ Carte hors ligne supprimée');
+    showToast('🗑️ Carte dé-téléchargée');
     refreshTilesStatus().catch(() => {});
 }
 
