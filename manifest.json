@@ -1,7 +1,7 @@
 {
-  "name": "Paris Map — Prototype Offline",
-  "short_name": "ParisMap",
-  "description": "A small offline-capable map prototype to save POIs in Paris.",
+  "name": "KatApp",
+  "short_name": "KatApp",
+  "description": "KatApp : une carte hors ligne pour épingler des lieux et des souvenirs.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
