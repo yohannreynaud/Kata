@@ -225,14 +225,30 @@ async function ensureOnline() {
 async function clearCache() {
     if (!confirm('Vider le cache de l\'application ?')) return;
     if (!(await ensureOnline())) return;
-    for (const key of await caches.keys()) await caches.delete(key);
+    await deleteAppCaches();
     showToast('✅ Cache vidé');
 }
 
-// Reset complet : mise à jour, activation d'un SW en attente, vidage de tous les caches,
-// désenregistrement, rechargement. IndexedDB n'est pas touchée : les lieux restent.
+// Vide les caches de l'app mais garde la carte téléchargée (~70 Mo, long à refaire) :
+// les tuiles ne changent pas avec les mises à jour de l'app.
+async function deleteAppCaches() {
+    for (const key of await caches.keys()) {
+        if (key !== TILES_CACHE) await caches.delete(key);
+    }
+}
+
+async function deleteMapTiles() {
+    if (!confirm('Supprimer la carte téléchargée ? Il faudra la retélécharger pour zoomer hors ligne.')) return;
+    if (tilesDownload) return showToast('⏳ Téléchargement en cours, attends la fin');
+    await caches.delete(TILES_CACHE);
+    showToast('🗑️ Carte hors ligne supprimée');
+    refreshTilesStatus().catch(() => {});
+}
+
+// Reset complet : mise à jour, activation d'un SW en attente, vidage des caches de l'app,
+// désenregistrement, rechargement. IndexedDB et la carte téléchargée ne sont pas touchées.
 async function hardResetPWA() {
-    if (!confirm('Réinitialiser complètement l\'application ? Tes lieux sont conservés.')) return;
+    if (!confirm('Réinitialiser complètement l\'application ? Tes lieux et la carte téléchargée sont conservés.')) return;
     if (!(await ensureOnline())) return;
     console.log('[RESET] Réinitialisation complète…');
     const reg = await navigator.serviceWorker?.getRegistration();
@@ -250,8 +266,8 @@ async function hardResetPWA() {
             });
         }
 
-        // 3) Vider tous les caches
-        for (const key of await caches.keys()) await caches.delete(key);
+        // 3) Vider les caches de l'app (la carte téléchargée est conservée)
+        await deleteAppCaches();
 
         // 4) Désenregistrer le SW
         await reg?.unregister();
