@@ -306,6 +306,12 @@ function initMap() {
         preferCanvas:    true,
         maxBounds:       bounds,
         maxBoundsViscosity: 1.0,
+        // Zoom continu : le pincement et la molette s'arrêtent où l'on veut, sans
+        // revenir au niveau entier le plus proche. Leaflet affiche alors les tuiles
+        // du niveau le plus proche, légèrement agrandies ou réduites.
+        zoomSnap:            0,
+        zoomDelta:           0.5,   // boutons +/-
+        wheelPxPerZoomLevel: 120,   // molette un peu plus douce
     });
 
     new ImageTileLayer('tiles/{z}/{x}/{y}.png', {
