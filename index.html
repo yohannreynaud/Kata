@@ -1,45 +1,66 @@
 <!DOCTYPE html>
 <html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Paris'PAM</title>
+  <meta name="theme-color" content="#b3261e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Paris'PAM">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192.svg">
+  <link rel="icon" href="assets/icons/icon-192.svg">
+  <link rel="stylesheet" href="libs/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Apply the saved theme color before the page draws, so it never flashes orange first.
+    try { const color = localStorage.getItem('color'); if (color) document.documentElement.dataset.color = color; } catch {}
+  </script>
+</head>
+<body data-view="map">
+  <header>
+    <button id="menu-btn" class="icon-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="4" y1="6" x2="20" y2="6"/>
+        <line x1="4" y1="12" x2="20" y2="12"/>
+        <line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <h1 id="page-title">Paris'PAM</h1>
+    <span class="poi-count" id="poi-count" data-for="map">0 lieux</span>
+    <span class="poi-count" id="poi-count-list" data-for="list">0 lieux</span>
+    <span class="poi-count" id="poi-count-photos" data-for="photos">0 photo</span>
+    <button class="icon-btn btn-filter" id="btn-filter-map" data-for="map" type="button" aria-label="Filtrer" onclick="openFilterMenu('map')">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5L3 5z"/></svg>
+      <span class="filter-active-count" id="filter-count-map"></span>
+    </button>
+    <button class="icon-btn btn-filter" id="btn-filter-list" data-for="list" type="button" aria-label="Filtrer" onclick="openFilterMenu('list')">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5L3 5z"/></svg>
+      <span class="filter-active-count" id="filter-count-list"></span>
+    </button>
+  </header>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Paris'PAM</title>
-        <meta name="theme-color" content="#2A9D8F">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="mobile-web-app-capable" content="yes">
-        <link rel="manifest" href="manifest.json">
-        <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192.svg">
-        <meta name="apple-mobile-web-app-status-bar-style" content="default">
-        <meta name="apple-mobile-web-app-title" content="Paris'PAM">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="libs/leaflet.min.css"/>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
+  <div id="menu-backdrop" class="backdrop" hidden></div>
+  <nav id="menu" class="menu" aria-label="Menu" hidden>
+    <div class="menu-header">
+      <h2>Menu</h2>
+      <button id="menu-close" class="icon-btn" type="button" aria-label="Fermer">✕</button>
+    </div>
+    <button class="menu-item" type="button" data-view="maintenance"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Maintenance de l'App</button>
+    <button class="menu-item" type="button" data-view="settings"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Paramètres</button>
+    <button class="menu-item" type="button" data-view="photos"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg>Photos</button>
+    <button class="menu-item" type="button" data-view="list"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Lieux</button>
+    <button class="menu-item" type="button" data-view="map"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg>Carte</button>
+  </nav>
 
-        <!-- ─── Vue : Carte ─────────────────────────── -->
-        <div id="view-map" class="app-view active">
-            <header>
-                <div class="logo">Paris'PAM</div>
-                <div class="header-spacer"></div>
-                <span class="poi-count" id="poi-count">0 lieux</span>
-                <button class="btn-export" onclick="exportData()">Exporter</button>
-            </header>
+  <!-- ─── Vue : Carte ─────────────────────────── -->
+  <div id="view-map" class="app-view active" data-title="Paris'PAM">
+    <div class="main">
+      <div id="map"></div>
 
-        <div class="topbar-actions">
-            <button class="btn-filter" id="btn-filter-map" onclick="openFilterMenu('map')">
-                <span>⚙︎ Filtrer</span>
-                <span class="filter-active-count" id="filter-count-map"></span>
-            </button>
-        </div>
-
-        <div class="main">
-            <div id="map"></div>
-
-            <div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+      <div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
             <div class="panel" id="panel">
                 <div class="panel-header">
                     <div class="panel-title" id="panel-title">Nouveau lieu</div>
@@ -50,102 +71,89 @@
                 <div class="panel-body" id="panel-body"></div>
                 <div class="panel-footer" id="panel-footer"></div>
             </div>
-        </div>
     </div>
+  </div>
 
-    <!-- ─── Vue : Liste ─────────────────────────── -->
-    <div id="view-list" class="app-view">
-        <header>
-            <div class="logo">Paris'PAM <span style="font-family:sans-serif;font-size:.9rem">🗺️</span>
-            </div>
-            <div class="header-spacer"></div>
-            <span class="poi-count" id="poi-count-list">0 lieux</span>
-        </header>
-        <div class="topbar-actions">
-            <button class="btn-filter" id="btn-filter-list" onclick="openFilterMenu('list')">
-                <span>⚙︎ Filtrer</span>
-                <span class="filter-active-count" id="filter-count-list"></span>
-            </button>
-        </div>
-        <div class="list-body" id="list-body">
-            <div class="list-empty-state">
-                <span>📍</span>
-                <p>Aucun lieu enregistré pour le moment.</p>
-            </div>
-        </div>
+  <!-- ─── Vue : Lieux ─────────────────────────── -->
+  <div id="view-list" class="app-view" data-title="Lieux">
+    <div class="list-body" id="list-body">
+      <div class="list-empty-state">
+        <span>📍</span>
+        <p>Aucun lieu enregistré pour le moment.</p>
+      </div>
     </div>
-    
-    <!-- ─── Vue : Photos ────────────────────────── -->
-    <div id="view-photos" class="app-view">
-        <header>
-            <div class="logo">Paris'PAM <span style="font-family:sans-serif;font-size:.9rem">🖼️</span></div>
-            <div class="header-spacer"></div>
-            <span class="poi-count" id="poi-count-photos">0 photo</span>
-        </header>
-        <div class="photos-grid-body" id="photos-grid-body">
-            <div class="list-empty-state">
-                <span>🖼️</span>
-                <p>Aucune photo enregistrée.</p>
-            </div>
-        </div>
-    </div>
+  </div>
 
-    <!-- ─── Vue : Paramètres ─────────────────────── -->
-    <div id="view-settings" class="app-view">
-        <header>
-            <div class="logo">Paris'PAM <span style="font-family:sans-serif;font-size:.9rem">🗺️</span>
-            </div>
-        </header>
-        <div class="settings-body">
-            <div class="settings-section">
-                <div class="settings-section-title">Données</div>
-                <div class="settings-row">
-                    <div>
-                        <div class="settings-row-label">Effacer tous les lieux</div>
-                        <div class="settings-row-desc">Supprime définitivement tous les points d'intérêt et leurs
-                            photos.</div>
-                    </div>
-                    <button class="btn-danger" onclick="deleteAllPois()">Tout effacer</button>
-                </div>
-                <div class="settings-row" style="border-top:1px solid var(--border)">
-                    <div>
-                        <div class="settings-row-label">Vider le cache</div>
-                        <div class="settings-row-desc">Supprime les fichiers mis en cache par le Service Worker.</div>
-                    </div>
-                    <button class="btn-secondary" onclick="clearCache()">Vider</button>
-                </div>
-            </div>
-            <div class="settings-section">
-                <div class="settings-section-title">Maintenance</div>
-                <div class="settings-row">
-                    <div>
-                        <div class="settings-row-label">Réinitialisation complète</div>
-                        <div class="settings-row-desc">Vide le cache et réenregistre le Service Worker, mais conserve vos Lieux.</div>
-                    </div>
-                    <button class="btn-danger" onclick="hardResetPWA()">Hard Reset</button>
-                </div>
-            </div>
-        </div>
+  <!-- ─── Vue : Photos ────────────────────────── -->
+  <div id="view-photos" class="app-view" data-title="Photos">
+    <div class="photos-grid-body" id="photos-grid-body">
+      <div class="list-empty-state">
+        <span>🖼️</span>
+        <p>Aucune photo enregistrée.</p>
+      </div>
     </div>
+  </div>
 
-    <!-- ─── Barre de navigation ──────────────────── -->
-    <div class="bottom-nav">
-        <button class="nav-btn active" data-view="map" onclick="switchView('map', this)">
-            <span class="nav-icon">🗺️</span>
-            <span class="nav-label">Carte</span>
-        </button>
-        <button class="nav-btn" data-view="list" onclick="switchView('list', this)">
-            <span class="nav-icon">📋</span>
-            <span class="nav-label">Lieux</span>
-        </button>
-        <button class="nav-btn" data-view="photos" onclick="switchView('photos', this)">
-            <span class="nav-icon">🖼️</span>
-            <span class="nav-label">Photos</span>
-        </button>
-        <button class="nav-btn" data-view="settings" onclick="switchView('settings', this)">
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-label">Paramètres</span>
-        </button>
+  <!-- ─── Vue : Paramètres ─────────────────────── -->
+  <div id="view-settings" class="app-view" data-title="Paramètres">
+    <div class="content">
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Couleur du thème</div>
+          <div id="color-choices" class="swatches">
+            <button class="swatch" type="button" data-color="orange" style="background: #b3261e">Orange</button>
+            <button class="swatch" type="button" data-color="rose" style="background: #c2185b">Rose</button>
+            <button class="swatch" type="button" data-color="bleu" style="background: #1e5bb8">Bleu</button>
+            <button class="swatch" type="button" data-color="vert" style="background: #2e7d32">Vert</button>
+            <button class="swatch" type="button" data-color="violet" style="background: #6a3fb5">Violet</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Exporter les lieux</div>
+          <div class="settings-desc">Télécharge tous vos lieux et leurs photos dans un fichier.</div>
+        </div>
+        <button class="btn-secondary" type="button" onclick="exportData()">Exporter</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Effacer tous les lieux</div>
+          <div class="settings-desc">Supprime définitivement tous les points d'intérêt et leurs photos.</div>
+        </div>
+        <button class="btn-danger" type="button" onclick="deleteAllPois()">Tout effacer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Vue : Maintenance ────────────────────── -->
+  <div id="view-maintenance" class="app-view" data-title="Maintenance de l'App">
+    <div class="content">
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Vider le cache</div>
+          <div class="settings-desc">Supprime les fichiers mis en cache par le Service Worker.</div>
+        </div>
+        <button class="btn-secondary" type="button" onclick="clearCache()">Vider</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Réinitialisation complète</div>
+          <div class="settings-desc">Vide le cache et réenregistre le Service Worker, mais conserve vos Lieux.</div>
+        </div>
+        <button class="btn-danger" type="button" onclick="hardResetPWA()">Hard Reset</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Github Project</div>
+          <div class="settings-desc">Le code source de l'app sur GitHub.</div>
+        </div>
+        <a class="btn-secondary" href="https://github.com/yohannreynaud/Kata" target="_blank" rel="noopener">Ouvrir</a>
+      </div>
+      <div id="sw-version" class="settings-version"></div>
+    </div>
+  </div>
+
     
         <div class="lightbox" id="lightbox" onclick="handleLightboxClick(event)">
             <button class="lightbox-close" onclick="closeLightbox()">✕</button>
@@ -157,14 +165,10 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="libs/leaflet.min.js"></script>
-    <script src="db.js"></script>
-    <script src="app.js"></script>
-    <!-- ─── Menu filtre ──────────────────────────── -->
+  <!-- ─── Menu filtre ──────────────────────────── -->
     <div class="filter-overlay" id="filter-overlay" onclick="closeFilterMenu()"></div>
     <div class="filter-menu" id="filter-menu">
         <div class="filter-menu-header">
@@ -177,6 +181,9 @@
             <button class="btn-primary" onclick="closeFilterMenu()">Appliquer</button>
         </div>
     </div>
-</body>
 
+  <script src="libs/leaflet.min.js"></script>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>

@@ -123,6 +123,7 @@ if ('serviceWorker' in navigator) { // Teste si le navigateur supporte les servi
         navigator.serviceWorker.addEventListener('message', event => {
             if (event.data?.type === 'SW_VERSION') {
                 console.log('[SW] Version du SW actif :', event.data.version);
+                document.getElementById('sw-version').textContent = `Service Worker ${event.data.version}`;
             }
         });
 
@@ -150,24 +151,15 @@ function showUpdateBanner(registration) {
 
     const banner = document.createElement('div');
     banner.id = 'pwa-update-banner';
-    banner.style.position = 'fixed';
-    banner.style.bottom = '0';
-    banner.style.left = '0';
-    banner.style.right = '0';
-    banner.style.padding = '12px 16px';
-    banner.style.background = '#222';
-    banner.style.color = '#fff';
-    banner.style.display = 'flex';
-    banner.style.justifyContent = 'space-between';
-    banner.style.alignItems = 'center';
-    banner.style.zIndex = '9999';
+    banner.className = 'update-banner';
 
     const text = document.createElement('span');
-    text.textContent = 'Une nouvelle version du SW est disponible.';
+    text.textContent = 'Une nouvelle version est disponible.';
 
     const updateBtn = document.createElement('button');
     updateBtn.textContent = 'Mettre à jour';
-    updateBtn.style.marginLeft = '8px';
+    updateBtn.className = 'update-btn';
+    updateBtn.type = 'button';
 
     updateBtn.addEventListener('click', () => {
     if (registration.waiting) {
@@ -966,16 +958,14 @@ function closeLightbox() {
 function lightboxGoToDetail() {
   if (!lightboxPoiId) return;
   closeLightbox();
-  const listBtn = document.querySelector('.nav-btn[data-view="list"]');
-  switchView('list', listBtn);
+  switchView('list');
   setTimeout(() => openDetail(lightboxPoiId), 100);
 }
 
 function lightboxGoToMap() {
   if (!lightboxPoiId) return;
   closeLightbox();
-  const mapBtn = document.querySelector('.nav-btn[data-view="map"]');
-  switchView('map', mapBtn);
+  switchView('map');
   const poi = allPois.find(p => p.id === lightboxPoiId);
   if (!poi) return;
   setTimeout(() => {
@@ -1041,17 +1031,63 @@ function updatePoiCount() {
 // ═══════════════════════════════════════════════
 // NAVIGATION PAR ONGLETS
 // ═══════════════════════════════════════════════
-function switchView(viewName, btnEl) {
-  closeFilterMenu(); // ← manquant
+// Menu (bouton ☰ en haut à gauche), comme dans l'app Flash-cards.
+const menu = {
+  panel: document.getElementById('menu'),
+  backdrop: document.getElementById('menu-backdrop'),
+  open: document.getElementById('menu-btn'),
+  close: document.getElementById('menu-close'),
+  items: document.querySelectorAll('.menu-item'),
+  title: document.getElementById('page-title'),
+};
+
+function toggleMenu(show) {
+  menu.panel.hidden = menu.backdrop.hidden = !show;
+  menu.open.setAttribute('aria-expanded', String(show));
+}
+
+menu.open.addEventListener('click', () => toggleMenu(menu.panel.hidden));
+menu.close.addEventListener('click', () => toggleMenu(false));
+menu.backdrop.addEventListener('click', () => toggleMenu(false));
+menu.items.forEach(item => item.addEventListener('click', () => switchView(item.dataset.view)));
+
+function switchView(viewName) {
+  closeFilterMenu();
+  toggleMenu(false);
   document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`view-${viewName}`).classList.add('active');
-  btnEl.classList.add('active');
+  const view = document.getElementById(`view-${viewName}`);
+  view.classList.add('active');
+  menu.title.textContent = view.dataset.title;
+  menu.items.forEach(item => {
+    if (item.dataset.view === viewName) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
+  // Le compteur et le bouton filtre de l'en-tête suivent la vue affichée.
+  document.body.dataset.view = viewName;
 
   if (viewName === 'map') setTimeout(() => map.invalidateSize(), 10);
   if (viewName === 'list') renderList();
   if (viewName === 'photos') renderPhotosView();
+  if (viewName === 'maintenance') navigator.serviceWorker?.controller?.postMessage({ type: 'GET_VERSION' });
 }
+menu.items.forEach(item => { if (item.dataset.view === 'map') item.setAttribute('aria-current', 'page'); });
+
+// Couleur du thème, mémorisée sur ce téléphone (orange par défaut), comme dans Flash-cards.
+const swatches = document.querySelectorAll('.swatch');
+
+function applyColor(color) {
+  if (color === 'orange') delete document.documentElement.dataset.color;
+  else document.documentElement.dataset.color = color;
+  swatches.forEach(s => s.setAttribute('aria-pressed', String(s.dataset.color === color)));
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', accent);
+}
+
+swatches.forEach(s => s.addEventListener('click', () => {
+  applyColor(s.dataset.color);
+  try { localStorage.setItem('color', s.dataset.color); } catch {}
+}));
+applyColor(document.documentElement.dataset.color || 'orange');
 
 // ═══════════════════════════════════════════════
 // ONGLET LISTE
@@ -1149,9 +1185,7 @@ async function renderList() {
 function goToPoiOnMap(poiId) {
   const poi = allPois.find(p => p.id === poiId);
   if (!poi) return;
-
-  const mapBtn = document.querySelector('.nav-btn[data-view="map"]');
-  switchView('map', mapBtn);
+  switchView('map');
 
   setTimeout(() => {
     map.setView([poi.location.lat, poi.location.lng], MAP_CONFIG.maxZoom, { animate: true });
