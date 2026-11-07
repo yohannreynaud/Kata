@@ -30,7 +30,7 @@ Liste exhaustive des fonctionnalités :
 ### 3. Comment lancer le projet
 Vous pouvez tester l'application de deux façons différentes : soit en simulant un utilisateur lambda, soit en simulant un développeur.
 #### 3.1 Tester l'application sur mobile ou ordinateur (simuler un utilisateur lambda)
-Paris'PAM est une PWA (Progressive Web App), elle est donc pensée pour être lancée sur mobile ! 
+KatApp (anciennement Paris'PAM) est une PWA (Progressive Web App), elle est donc pensée pour être lancée sur mobile ! 
 ##### 3.1.1 Sur Mobile
 Il faut installer la PWA (qui est au départ un site web) sur son téléphone. Pour cela, il faut :
 - Ouvrir l'url https://yohannreynaud.github.io/Fusion-projet-web-pwa-perso/ sur un navigateur mobile (Chrome, Edge, Firefox ou Safari)
