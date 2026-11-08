@@ -413,6 +413,9 @@ function initMap() {
 // l'appui est annulé : le déplacement et le zoom de la carte ne sont pas gênés.
 const LONG_PRESS_DELAY = 550;        // ms
 const LONG_PRESS_MOVE_TOLERANCE = 10; // px
+// Après le relâchement d'un appui prolongé, le formulaire ignore les appuis pendant ce
+// délai : juste assez pour absorber le click émis par le relâchement (quelques ms).
+const LONG_PRESS_RELEASE_GUARD = 80;  // ms
 
 function setupLongPressToAdd() {
     const container = map.getContainer();
@@ -494,9 +497,9 @@ function setupLongPressToAdd() {
         if (press && e.pointerId === press.id) cancelPress();
         if (e.pointerId === firedPointerId) {
             firedPointerId = null;
-            if (e.type === 'pointerup') swallowUntil = Date.now() + 350;
+            if (e.type === 'pointerup') swallowUntil = Date.now() + LONG_PRESS_RELEASE_GUARD;
             // On laisse passer le click/focus de compatibilité émis après le relâchement.
-            setTimeout(() => document.body.classList.remove('long-press-holding'), 350);
+            setTimeout(() => document.body.classList.remove('long-press-holding'), LONG_PRESS_RELEASE_GUARD);
         }
     };
     // Sur document : le relâchement peut avoir lieu hors de la carte.
