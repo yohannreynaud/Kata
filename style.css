@@ -245,7 +245,8 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 
 .toast {
   position: fixed;
-  z-index: 20;
+  /* Au-dessus des panneaux et menus, pour rester visible depuis n'importe quelle vue. */
+  z-index: 1000;
   left: 50%;
   bottom: calc(env(safe-area-inset-bottom) + 24px);
   transform: translate(-50%, 20px);

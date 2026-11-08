@@ -297,7 +297,8 @@ async function hardResetPWA() {
         console.error('[RESET] Erreur', err);
     }
 
-    // 5) Rechargement final
+    // 5) Rechargement final, avec le message de succès à afficher au retour
+    try { sessionStorage.setItem(RESET_DONE_KEY, '1'); } catch {}
     window.location.reload();
 }
 
@@ -1162,11 +1163,25 @@ function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Un nouveau message remplace le précédent et repart pour toute sa durée
+// (sinon le minuteur de « ⏳ … » masquait trop tôt le « ✅ … » qui suit).
+let toastTimer = null;
 function showToast(msg, duration = 2800) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// Le Hard Reset recharge la page : le message de succès est affiché après le rechargement.
+const RESET_DONE_KEY = 'katapp-reset-done';
+function showPendingResetToast() {
+  try {
+    if (!sessionStorage.getItem(RESET_DONE_KEY)) return;
+    sessionStorage.removeItem(RESET_DONE_KEY);
+  } catch { return; }
+  showToast('✅ Application réinitialisée');
 }
 
 function updatePoiCount() {
@@ -1370,6 +1385,7 @@ function withTimeout(promise, ms) {
 }
 
 (async function init() {
+    showPendingResetToast();
     // La carte ne dépend pas de la base : on l'affiche d'abord. Avant, l'app attendait
     // IndexedDB, et un navigateur où elle échoue ou ne répond jamais (navigateur intégré
     // d'une messagerie, navigation privée, vieux iOS) restait sur un écran sans carte.
