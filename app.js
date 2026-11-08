@@ -595,9 +595,7 @@ function addMarkerToMap(poi) {
         ${starIcon(poi.favorite)}
         </button>
     </div>
-    <div class="popup-photos" id="popup-photos-${poi.id}">
-        <div class="popup-photo-loading">Chargement…</div>
-    </div>
+    <div class="popup-photos" id="popup-photos-${poi.id}"></div>
     `;
 
     // On passe le conteneur directement : à ce moment, le div n'est pas encore
@@ -632,8 +630,9 @@ async function loadPopupPhotos(poiId, container) {
     return;
   }
 
+  // Pas de photo : rien n'est affiché (pas de texte « Aucune photo »).
   if (!photos.length) {
-    container.innerHTML = `<div class="popup-no-photo">Aucune photo</div>`;
+    container.innerHTML = '';
     return;
   }
 
@@ -657,6 +656,9 @@ async function loadPopupPhotos(poiId, container) {
       ${html.join('')}
     </div>
   `;
+  // Les miniatures arrivent après l'ouverture : on recale la bulle au-dessus du pin.
+  const popup = markers[poiId]?.getPopup();
+  if (popup?.isOpen()) popup.update();
 }
 
 
