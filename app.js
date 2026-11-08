@@ -1333,6 +1333,16 @@ swatches.forEach(s => s.addEventListener('click', () => {
 }));
 applyColor(document.documentElement.dataset.color || 'orange');
 
+// Carte sombre : un filtre CSS inverse les couleurs des tuiles (voir style.css).
+// Les images ne sont pas retéléchargées, ça marche donc aussi hors ligne.
+const darkMapToggle = document.getElementById('dark-map-toggle');
+darkMapToggle.checked = 'darkMap' in document.documentElement.dataset;
+darkMapToggle.addEventListener('change', () => {
+  if (darkMapToggle.checked) document.documentElement.dataset.darkMap = '';
+  else delete document.documentElement.dataset.darkMap;
+  try { localStorage.setItem('darkMap', darkMapToggle.checked ? '1' : '0'); } catch {}
+});
+
 // ═══════════════════════════════════════════════
 // ONGLET LISTE
 // ═══════════════════════════════════════════════
