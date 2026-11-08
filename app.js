@@ -843,10 +843,10 @@ function renderForm(poi) {
 
   renderPhotoPreview();
 
-  footer.innerHTML = `
-    <button class="btn-secondary" onclick="closePanel()">Annuler</button>
-    <button class="btn-primary" onclick="savePoi()">Enregistrer</button>
-  `;
+  // Formulaire : bouton Enregistrer en haut (dans l'en-tête), pas de pied ni de
+  // bouton Annuler (la croix ferme déjà la popup).
+  footer.innerHTML = '';
+  document.getElementById('panel').classList.add('form-mode');
 }
 
 function selectCat(el, key, color) {
@@ -1084,6 +1084,7 @@ async function openDetail(poiId) {
     <div style="font-size:.72rem;color:var(--text-muted)">Ajouté le ${new Date(poi.createdAt).toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})}</div>
   `;
 
+  document.getElementById('panel').classList.remove('form-mode');
   footer.innerHTML = `
     <button class="btn-danger" onclick="deletePoi('${poi.id}')">Supprimer</button>
     <div style="flex:1"></div>
