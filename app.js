@@ -402,7 +402,32 @@ function initMap() {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+    // Taille des pins selon le zoom : petits quand on dézoome, plus grands quand on zoome.
+    map.on('zoom', () => updatePinScale(map.getZoom()));
+    map.on('zoomanim', e => updatePinScale(e.zoom));
+    updatePinScale(map.getZoom());
+
     setupLongPressToAdd();
+}
+
+// Échelle des pins : PIN_SCALE_MIN au zoom minimum, PIN_SCALE_MAX au zoom maximum.
+const PIN_SCALE_MIN = 0.35;
+const PIN_SCALE_MAX = 1.15;
+const PIN_SELECTED_FACTOR = 1.5;   // pin touché ou sélectionné
+let pinScale = 1;
+function updatePinScale(zoom) {
+  const { minZoom, maxZoom } = MAP_CONFIG;
+  const t = Math.min(1, Math.max(0, (zoom - minZoom) / (maxZoom - minZoom)));
+  pinScale = PIN_SCALE_MIN + t * (PIN_SCALE_MAX - PIN_SCALE_MIN);
+  map.getContainer().style.setProperty('--pin-scale', pinScale.toFixed(3));
+  // La bulle ouverte suit la hauteur du pin agrandi.
+  const popup = map._popup;
+  if (popup && map.hasLayer(popup)) { popup.options.offset = popupOffset(); popup.update(); }
+}
+function popupOffset() {
+  // 7 px : décalage par défaut de Leaflet (pointe de la bulle) ; la bulle s'arrête
+  // juste au-dessus du pin agrandi.
+  return L.point(0, 7 - Math.round(40 * pinScale * PIN_SELECTED_FACTOR) - 2);
 }
 
 // ═══════════════════════════════════════════════
@@ -505,7 +530,14 @@ function setupLongPressToAdd() {
     const release = e => {
         activePointers.delete(e.pointerId);
         if (press && e.pointerId === press.id) cancelPress();
-        unpressMarker();   // s'il est sélectionné (bulle ou fiche), il reste grand
+        // Relâchement : on garde le pin grand un court instant, le temps que le click
+        // ouvre sa bulle (il devient alors « sélectionné »). Sans ça, il rétrécissait
+        // puis regrossissait sur un simple tap.
+        if (pressedMarkerEl) {
+            const el = pressedMarkerEl;
+            pressedMarkerEl = null;
+            setTimeout(() => el.classList.remove('is-pressed'), 300);
+        }
         if (e.pointerId === firedPointerId) {
             firedPointerId = null;
             if (e.type === 'pointerup') swallowUntil = Date.now() + LONG_PRESS_RELEASE_GUARD;
@@ -540,7 +572,7 @@ function makeMarkerIcon(category, isFavorite = false) {
     html: `<div class="custom-marker">${svg}</div>`,
     iconSize: [32, 40],
     iconAnchor: [16, 40],
-    popupAnchor: [0, -62],   // au-dessus du pin agrandi (x1,5) quand sa bulle est ouverte
+    popupAnchor: [0, 0],   // hauteur gérée par popupOffset(), selon le zoom
     className: '',
   });
 }
@@ -574,7 +606,12 @@ function addMarkerToMap(poi) {
     return div;
   }, { maxWidth: 260 });
 
-  marker.on('popupopen', () => { popupPoiId = poi.id; refreshSelectedMarker(); });
+  marker.on('popupopen', e => {
+    popupPoiId = poi.id;
+    refreshSelectedMarker();
+    e.popup.options.offset = popupOffset();
+    e.popup.update();
+  });
   marker.on('popupclose', () => { if (popupPoiId === poi.id) popupPoiId = null; refreshSelectedMarker(); });
   // Réaffiché après un filtre : Leaflet recrée l'icône, on remet l'état sélectionné.
   marker.on('add', () => refreshSelectedMarker());
