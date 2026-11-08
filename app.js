@@ -448,8 +448,14 @@ function setupLongPressToAdd() {
         activePointers.add(e.pointerId);
         if (activePointers.size > 1) { cancelPress(); return; }   // pincement
         if (e.pointerType === 'mouse' && e.button !== 0) return;
-        // Pas sur un pin, un bouton de zoom ou une bulle ouverte.
-        if (e.target.closest('.leaflet-marker-icon, .leaflet-control, .leaflet-popup')) return;
+        // Pas sur un bouton de zoom ou une bulle ouverte.
+        if (e.target.closest('.leaflet-control, .leaflet-popup')) return;
+        // Appui prolongé sur un pin : ouvre sa fiche (modifiable) au lieu de créer un lieu.
+        const markerEl = e.target.closest('.leaflet-marker-icon');
+        const markerPoiId = markerEl
+            ? Object.keys(markers).find(id => markers[id].getElement() === markerEl)
+            : null;
+        if (markerEl && !markerPoiId) return;
 
         cancelPress();
         const rect = container.getBoundingClientRect();
@@ -467,8 +473,13 @@ function setupLongPressToAdd() {
                 // pas relâché, le formulaire ignore les appuis, sinon le relâchement
                 // sélectionnerait le champ de saisie situé sous le doigt.
                 document.body.classList.add('long-press-holding');
-                pendingLatLng = { lat: latlng.lat, lng: latlng.lng };
-                openAddForm();
+                if (markerPoiId) {
+                    map.closePopup();
+                    openDetail(markerPoiId);
+                } else {
+                    pendingLatLng = { lat: latlng.lat, lng: latlng.lng };
+                    openAddForm();
+                }
             }, LONG_PRESS_DELAY),
         };
     });
@@ -540,9 +551,6 @@ function addMarkerToMap(poi) {
     </div>
     <div class="popup-photos" id="popup-photos-${poi.id}">
         <div class="popup-photo-loading">Chargement…</div>
-    </div>
-    <div class="popup-actions">
-        <button class="popup-btn" onclick="openDetail('${poi.id}')">Voir détails</button>
     </div>
     `;
 
