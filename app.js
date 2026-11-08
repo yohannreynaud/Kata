@@ -3,27 +3,30 @@
 // ═══════════════════════════════════════════════
 // Icônes dessinées (traits noirs, même style que les icônes du menu), viewBox 24×24.
 const CAT_ICON_PATHS = {
-  undefined: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2h.01"/>',
   salle:     '<path d="M3 9 12 4l9 5z"/><path d="M6 11.5v6.5M10 11.5v6.5M14 11.5v6.5M18 11.5v6.5"/><path d="M3 20.5h18"/>',
-  oeuvre:    '<rect x="2.5" y="4" width="19" height="16" rx="1"/><path d="M5 17C6.3 13.5 7 9.8 10.5 8.2c2.6-1.2 5.4-.4 6.4 1.8-1.5-.7-3.2-.1-3.4 1.5-.2 1.4 1.1 2.3 2.4 1.7"/><path d="M8 17c.6-2.5 1.7-4.4 3.6-5.4"/><path d="M15.5 17l1.8-2.4 1.8 2.4"/><path d="M4.5 17h15"/>',
-  repere:    '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-  avisiter:  '<path d="M18 21l-6-4.5L6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/>',
+  oeuvre:    '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  avisiter:  '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2h.01"/>',
   favorite:  '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>',
 };
 function iconSvg(key, cls = 'cat-svg') {
-  const paths = CAT_ICON_PATHS[key] || CAT_ICON_PATHS.undefined;
+  const paths = CAT_ICON_PATHS[key] || CAT_ICON_PATHS[DEFAULT_CAT];
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 }
 
 const CATEGORIES = {
   salle:     { label: "Salle",        color: "#457B9D" },
-  oeuvre:    { label: "Œuvre d'art",  color: "#E63946" },
-  repere:    { label: "Repère",       color: "#2A9D8F" },
+  oeuvre:    { label: "Œuvre",        color: "#E63946" },
   avisiter:  { label: "À visiter",    color: "#F4A261" },
-  undefined: { label: "Undefined",    color: "#6B7280" },
 };
-// Type utilisé quand un lieu n'a pas de type connu (l'ordre ci-dessus n'est que l'ordre d'affichage).
-const DEFAULT_CAT = 'undefined';
+// Type par défaut d'un nouveau lieu, et type de secours pour un lieu sans type connu
+// (l'ordre ci-dessus n'est que l'ordre d'affichage).
+const DEFAULT_CAT = 'avisiter';
+// Anciens types retirés, et le type vers lequel leurs lieux sont déplacés au démarrage.
+const LEGACY_CATS = { undefined: 'avisiter', repere: 'oeuvre' };
+function migratedCategory(category) {
+  if (CATEGORIES[category]) return category;
+  return LEGACY_CATS[category] || DEFAULT_CAT;
+}
 for (const [key, cat] of Object.entries(CATEGORIES)) cat.icon = iconSvg(key);
 function getCat(key) {
   return CATEGORIES[key] || CATEGORIES[DEFAULT_CAT];
@@ -480,7 +483,7 @@ function makeMarkerIcon(category, isFavorite = false) {
     <path d="M16 0C9.37 0 4 5.37 4 12c0 9 12 28 12 28s12-19 12-28C28 5.37 22.63 0 16 0z"
       fill="${cat.color}" stroke="rgba(0,0,0,.2)" stroke-width="1"/>
     <circle cx="16" cy="12" r="8" fill="white" fill-opacity=".95"/>
-    <g transform="translate(9.5 5.5) scale(.5417)" fill="none" stroke="#1f1f1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON_PATHS[category] || CAT_ICON_PATHS.undefined}</g>
+    <g transform="translate(9.5 5.5) scale(.5417)" fill="none" stroke="#1f1f1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON_PATHS[category] || CAT_ICON_PATHS[DEFAULT_CAT]}</g>
     ${favBadge}
   </svg>`;
   return L.divIcon({
@@ -769,7 +772,7 @@ async function openEditForm(poiId) {
 function renderForm(poi) {
   const body = document.getElementById('panel-body');
   const footer = document.getElementById('panel-footer');
-  const selectedCategory = poi?.content?.category || 'undefined';
+  const selectedCategory = CATEGORIES[poi?.content?.category] ? poi.content.category : DEFAULT_CAT;
   const catGridHtml = Object.entries(CATEGORIES).map(([key, cat]) =>
     `<button type="button" class="cat-btn${selectedCategory === key ? ' selected' : ''}"
       data-cat="${key}"
@@ -1393,6 +1396,15 @@ function withTimeout(promise, ms) {
         return;
     }
     allPois = await dbGetAll('poi');
+    // Les types Undefined et Repère ont été retirés : leurs lieux passent à À visiter et Œuvre.
+    for (const poi of allPois) {
+      if (!poi.content) continue;
+      const cat = migratedCategory(poi.content.category);
+      if (cat !== poi.content.category) {
+        poi.content.category = cat;
+        try { await dbPut('poi', poi); } catch (err) { console.warn('Migration du type impossible', poi.id, err); }
+      }
+    }
     for (const poi of allPois) addMarkerToMap(poi);
     updatePoiCount();
     console.log(`✅ KatApp initialisée — ${allPois.length} POI chargés depuis IndexedDB`);
