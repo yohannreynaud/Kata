@@ -44,7 +44,7 @@ const CATEGORIES = {
 };
 // Type par défaut d'un nouveau lieu, et type de secours pour un lieu sans type connu
 // (l'ordre ci-dessus n'est que l'ordre d'affichage).
-const DEFAULT_CAT = 'avisiter';
+const DEFAULT_CAT = 'salle';
 // Anciens types retirés, et le type vers lequel leurs lieux sont déplacés au démarrage.
 const LEGACY_CATS = { undefined: 'avisiter', repere: 'oeuvre' };
 function migratedCategory(category) {
