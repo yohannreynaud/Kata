@@ -21,6 +21,7 @@ Liste exhaustive des fonctionnalités :
 - L'application peut être utilisée hors ligne grâce à l'utilisation d'un service worker qui stocke les données en cache.
 - L'application propose une carte (Leaflet) interactive, centrée sur Paris. Leaflet propose les fonctionnalités classiques d'une carte interactive : zoom, déplacement, etc.
 - Il est possible, **par un appui prolongé**, de faire apparaître un pop-up sur la carte permettant d'ajouter un point d'intérêt avec au choix : une description, une catégorie, un ou plusieurs tags et une ou plusieurs photos. 
+- Un appui prolongé sur un point d'intérêt ouvre directement sa fiche, modifiable. Un simple tap affiche son titre et ses photos.
 - On peut ensuite cliquer sur les points d'intérêts déjà créés pour voir leur description, leurs photos, leurs catégories et leurs tags.
 - Il est possible de modifier les points d'intérêts déjà créés.
 - Il est possible de supprimer les points d'intérêts déjà créés.
