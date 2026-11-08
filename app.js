@@ -602,7 +602,7 @@ function addMarkerToMap(poi) {
     // inséré dans la page, donc un getElementById ne le trouverait pas.
     loadPopupPhotos(poi.id, div.querySelector('.popup-photos'));
     return div;
-  }, { maxWidth: 260 });
+  }, { maxWidth: 260, closeButton: false });   // pas de croix : on ferme en tapant à côté
 
   marker.on('popupopen', e => {
     popupPoiId = poi.id;
