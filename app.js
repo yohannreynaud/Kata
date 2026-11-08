@@ -425,7 +425,16 @@ function setupLongPressToAdd() {
     // Bloque le menu contextuel natif (iOS/Android le déclenchent sur un appui prolongé).
     container.addEventListener('contextmenu', e => e.preventDefault());
 
-    function cancelPress() {
+    // Pin sous le doigt : grossi dès qu'on le touche (tap ou appui prolongé), pas
+    // seulement au relâchement.
+    let pressedMarkerEl = null;
+    function unpressMarker() {
+        pressedMarkerEl?.classList.remove('is-pressed');
+        pressedMarkerEl = null;
+    }
+
+    function cancelPress(keepPressedMarker = false) {
+        if (!keepPressedMarker) unpressMarker();
         if (!press) return;
         clearTimeout(press.timer);
         press = null;
@@ -461,6 +470,7 @@ function setupLongPressToAdd() {
         if (markerEl && !markerPoiId) return;
 
         cancelPress();
+        if (markerEl) { markerEl.classList.add('is-pressed'); pressedMarkerEl = markerEl; }
         const rect = container.getBoundingClientRect();
 
         const x = e.clientX, y = e.clientY;
@@ -469,7 +479,7 @@ function setupLongPressToAdd() {
             timer: setTimeout(() => {
                 const latlng = map.containerPointToLatLng(L.point(x - rect.left, y - rect.top));
                 const id = press.id;
-                cancelPress();
+                cancelPress(true);   // le pin reste grossi : sa fiche s'ouvre
                 if (navigator.vibrate) navigator.vibrate(30);
                 firedPointerId = id;
                 // Le doigt est encore posé là où le formulaire apparaît : tant qu'il n'est
@@ -495,6 +505,7 @@ function setupLongPressToAdd() {
     const release = e => {
         activePointers.delete(e.pointerId);
         if (press && e.pointerId === press.id) cancelPress();
+        unpressMarker();   // s'il est sélectionné (bulle ou fiche), il reste grand
         if (e.pointerId === firedPointerId) {
             firedPointerId = null;
             if (e.type === 'pointerup') swallowUntil = Date.now() + LONG_PRESS_RELEASE_GUARD;
@@ -505,8 +516,8 @@ function setupLongPressToAdd() {
     // Sur document : le relâchement peut avoir lieu hors de la carte.
     document.addEventListener('pointerup', release);
     document.addEventListener('pointercancel', release);
-    map.on('movestart zoomstart', cancelPress);
-    window.addEventListener('blur', cancelPress);
+    map.on('movestart zoomstart', () => cancelPress());
+    window.addEventListener('blur', () => cancelPress());
 }
 
 // ═══════════════════════════════════════════════
