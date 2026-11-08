@@ -526,7 +526,7 @@ function makeMarkerIcon(category, isFavorite = false) {
     html: `<div class="custom-marker">${svg}</div>`,
     iconSize: [32, 40],
     iconAnchor: [16, 40],
-    popupAnchor: [0, -42],
+    popupAnchor: [0, -62],   // au-dessus du pin agrandi (x1,5) quand sa bulle est ouverte
     className: '',
   });
 }
@@ -560,6 +560,10 @@ function addMarkerToMap(poi) {
     return div;
   }, { maxWidth: 260 });
 
+  marker.on('popupopen', () => { popupPoiId = poi.id; refreshSelectedMarker(); });
+  marker.on('popupclose', () => { if (popupPoiId === poi.id) popupPoiId = null; refreshSelectedMarker(); });
+  // Réaffiché après un filtre : Leaflet recrée l'icône, on remet l'état sélectionné.
+  marker.on('add', () => refreshSelectedMarker());
   marker.addTo(layers[cat]);
   markers[poi.id] = marker;
 }
@@ -605,6 +609,17 @@ async function loadPopupPhotos(poiId, container) {
 }
 
 
+// Pin sélectionné (bulle ouverte ou fiche ouverte) : affiché plus grand.
+let popupPoiId = null;
+function refreshSelectedMarker() {
+  const panelOpen = document.getElementById('panel')?.classList.contains('open');
+  for (const [id, m] of Object.entries(markers)) {
+    const selected = id === popupPoiId || (panelOpen && id === editPoiId);
+    m.getElement()?.classList.toggle('is-selected', selected);
+    m.setZIndexOffset(selected ? 1000 : 0);
+  }
+}
+
 function removeMarkerFromMap(poiId) {
   if (markers[poiId]) {
     map.removeLayer(markers[poiId]);
@@ -616,6 +631,7 @@ function openPanel(title) {
     document.getElementById('panel-title').textContent = title;
     document.getElementById('panel').classList.add('open');
     document.getElementById('panel-overlay').classList.add('open'); // ← ajouter
+    refreshSelectedMarker();
 }
 
 function closePanel() {
@@ -627,6 +643,7 @@ function closePanel() {
     pendingLatLng = null;
     formPhotos = [];
     formTags = [];
+    refreshSelectedMarker();
 }
 
 // ═══════════════════════════════════════════════
@@ -1107,7 +1124,7 @@ async function toggleFavorite() {
   btn.innerHTML = starIcon(poi.favorite);
   btn.classList.toggle('active', poi.favorite);
   if (markers[poiId]) {
-    markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite));
+    markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite)); refreshSelectedMarker();
     if (filterFavoritesOnlyMap) {
       const cat = CATEGORIES[poi.content.category] ? poi.content.category : DEFAULT_CAT;
       if (!poi.favorite) {
@@ -1480,7 +1497,7 @@ async function toggleFavoriteFromPopup(poiId, btn) {
   await dbPut('poi', poi);
   btn.innerHTML = starIcon(poi.favorite);
   if (markers[poiId]) {
-    markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite));
+    markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite)); refreshSelectedMarker();
   }
   allPois = await dbGetAll('poi');
   renderList();
@@ -1493,7 +1510,7 @@ async function toggleFavoriteFromList(poiId) {
   poi.updatedAt = new Date().toISOString();
   await dbPut('poi', poi);
   if (markers[poiId]) {
-    markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite));
+    markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite)); refreshSelectedMarker();
   }
   allPois = await dbGetAll('poi');
   renderList();

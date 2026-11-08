@@ -768,6 +768,12 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
   cursor: pointer;
 }
 .custom-marker svg { width: 32px; height: 40px; }
+/* Pin sélectionné (bulle ou fiche ouverte) : plus grand, ancré par sa pointe. */
+.custom-marker {
+  transform-origin: 50% 100%;
+  transition: transform .15s ease-out;
+}
+.leaflet-marker-icon.is-selected .custom-marker { transform: scale(1.5); }
 
 
 .popup-thumb-row {
