@@ -811,7 +811,7 @@ function renderForm(poi) {
         <span class="icon">📷</span>
         Glissez des images ici ou cliquez pour ajouter
       </label>
-      <input id="file-input" type="file" accept="image/*" multiple onchange="handleFileInput(event)" />
+      <input id="file-input" type="file" accept="image/*" multiple onclick="watchPhotoPicker()" oncancel="photoPickerReturnedEmpty()" onchange="handleFileInput(event)" />
       <div class="photo-grid" id="photo-preview"></div>
     </div>
     ${poi ? `<div class="detail-coords">${getCoordsDisplay(poi.location)}</div>` : ''}
@@ -862,9 +862,38 @@ function renderTagsDisplay() {
   ).join('');
 }
 
+// Sur iPhone hors ligne, une photo restée sur iCloud ne revient souvent pas du tout :
+// le sélecteur se ferme sans déclencher « change » (ou avec une liste vide). On guette
+// donc le retour dans l'app après l'ouverture du sélecteur.
+let photoPickerOpen = false;
+
+function watchPhotoPicker() {
+  photoPickerOpen = true;
+  const onBack = () => setTimeout(() => {
+    if (photoPickerOpen) photoPickerReturnedEmpty();
+  }, 1500);
+  // Petit délai : on ignore un éventuel « focus » émis au moment même du clic.
+  setTimeout(() => {
+    window.addEventListener('focus', onBack, { once: true });
+    document.addEventListener('visibilitychange', function vis() {
+      if (document.visibilityState !== 'visible') return;
+      document.removeEventListener('visibilitychange', vis);
+      onBack();
+    });
+  }, 500);
+}
+
+function photoPickerReturnedEmpty() {
+  if (!photoPickerOpen) return;
+  photoPickerOpen = false;
+  if (!navigator.onLine) showPhotoReadError(0, 0);
+}
+
 async function handleFileInput(e) {
+  photoPickerOpen = false;
   const files = Array.from(e.target.files);
   e.target.value = '';
+  if (!files.length) { if (!navigator.onLine) showPhotoReadError(0, 0); return; }
   let failed = 0;
   for (const file of files) {
     if (file.type && !file.type.startsWith('image/')) continue;
@@ -906,7 +935,7 @@ function canDecodeImage(blob) {
 
 function showPhotoReadError(failed, total) {
   const several = total > 1;
-  const what = several ? `${failed} photo${failed > 1 ? 's' : ''} sur ${total} n'${failed > 1 ? 'ont' : 'a'} pas pu être ajoutée${failed > 1 ? 's' : ''}.` : 'La photo n\'a pas pu être ajoutée.';
+  const what = !total ? 'Aucune photo n\'a été reçue.' : several ? `${failed} photo${failed > 1 ? 's' : ''} sur ${total} n'${failed > 1 ? 'ont' : 'a'} pas pu être ajoutée${failed > 1 ? 's' : ''}.` : 'La photo n\'a pas pu être ajoutée.';
   if (!navigator.onLine) {
     alert(`📶 Pas de réseau\n\n${what}\n\nSans connexion, on ne peut pas ajouter une photo stockée sur iCloud (non téléchargée sur l'iPhone). Reconnecte-toi pour l'ajouter, ou prends la photo directement avec l'appareil photo.`);
   } else {
