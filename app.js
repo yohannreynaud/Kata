@@ -16,15 +16,17 @@ function iconSvg(key, cls = 'cat-svg') {
 }
 
 const CATEGORIES = {
-  undefined:  { label: "Undefined",     color: "#6B7280" },
   salle:     { label: "Salle",        color: "#457B9D" },
   oeuvre:    { label: "Œuvre d'art",  color: "#E63946" },
   repere:    { label: "Repère",       color: "#2A9D8F" },
   avisiter:  { label: "À visiter",    color: "#F4A261" },
+  undefined: { label: "Undefined",    color: "#6B7280" },
 };
+// Type utilisé quand un lieu n'a pas de type connu (l'ordre ci-dessus n'est que l'ordre d'affichage).
+const DEFAULT_CAT = 'undefined';
 for (const [key, cat] of Object.entries(CATEGORIES)) cat.icon = iconSvg(key);
 function getCat(key) {
-  return CATEGORIES[key] || CATEGORIES[Object.keys(CATEGORIES)[0]];
+  return CATEGORIES[key] || CATEGORIES[DEFAULT_CAT];
 }
 
 // Configuration de la carte personnalisée
@@ -490,7 +492,7 @@ function makeMarkerIcon(category, isFavorite = false) {
   });
 }
 function addMarkerToMap(poi) {
-  const cat = CATEGORIES[poi.content.category] ? poi.content.category : Object.keys(CATEGORIES)[0];
+  const cat = CATEGORIES[poi.content.category] ? poi.content.category : DEFAULT_CAT;
   const marker = L.marker([poi.location.lat, poi.location.lng], {
     icon: makeMarkerIcon(cat, !!poi.favorite),
   });
@@ -682,7 +684,7 @@ function applyFilters() {
     for (const poi of allPois) {
       const marker = markers[poi.id];
       if (!marker) continue;
-      const cat = CATEGORIES[poi.content.category] ? poi.content.category : Object.keys(CATEGORIES)[0];
+      const cat = CATEGORIES[poi.content.category] ? poi.content.category : DEFAULT_CAT;
       if (filterFavoritesOnlyMap && !poi.favorite) {
         layers[cat].removeLayer(marker);
       } else if (activeCategories.has(cat)) {
@@ -1060,7 +1062,7 @@ async function toggleFavorite() {
   if (markers[poiId]) {
     markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite));
     if (filterFavoritesOnlyMap) {
-      const cat = CATEGORIES[poi.content.category] ? poi.content.category : Object.keys(CATEGORIES)[0];
+      const cat = CATEGORIES[poi.content.category] ? poi.content.category : DEFAULT_CAT;
       if (!poi.favorite) {
         layers[cat].removeLayer(markers[poiId]);
       } else if (activeCategories.has(cat)) {
