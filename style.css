@@ -769,12 +769,18 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 }
 .custom-marker svg { width: 32px; height: 40px; }
 /* Pin sélectionné (bulle ou fiche ouverte) : plus grand, ancré par sa pointe. */
+/* Taille selon le zoom (--pin-scale, mis à jour par updatePinScale) ; x1,5 quand le
+   pin est touché ou sélectionné. Ancré par sa pointe. */
 .custom-marker {
   transform-origin: 50% 100%;
+  transform: scale(var(--pin-scale, 1));
   transition: transform .15s ease-out;
+  pointer-events: auto;
 }
 .leaflet-marker-icon.is-selected .custom-marker,
-.leaflet-marker-icon.is-pressed .custom-marker { transform: scale(1.5); }
+.leaflet-marker-icon.is-pressed .custom-marker { transform: scale(calc(var(--pin-scale, 1) * 1.5)); }
+/* Seul le pin dessiné (réduit ou non) capte les appuis, pas sa boîte 32x40 d'origine. */
+.leaflet-marker-icon.leaflet-interactive { pointer-events: none; }
 
 
 .popup-thumb-row {
