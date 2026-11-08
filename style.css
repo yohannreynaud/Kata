@@ -646,6 +646,8 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 .panel-save-btn { display: none; flex: 0 0 auto; }
 .panel.form-mode .panel-save-btn { display: block; }
 .panel.form-mode .panel-footer { display: none; }
+.form-delete-btn { flex: 0 0 auto; align-self: flex-start; margin-top: 4px; }
+.photo-thumb img { cursor: pointer; }
 .panel-footer {
   padding: 12px 16px;
   border-top: 1px solid var(--border);

@@ -782,16 +782,27 @@ function openAddForm() {
   openPanel('Nouveau lieu');
 }
 
+// Fiche d'un lieu existant : directement modifiable (pas de fiche en lecture seule
+// puis « Modifier »). Étoile favori et Enregistrer dans l'en-tête, Supprimer en bas.
 async function openEditForm(poiId) {
   panelMode = 'edit';
   editPoiId = poiId;
   const poi = await dbGet('poi', poiId);
   const photos = await dbGetByIndex('photos', 'poiId', poiId);
-  formPhotos = photos.map(p => ({ blob: p.blob, url: URL.createObjectURL(p.blob), existingId: p.photoId }));
+  formPhotos = photos.map(p => {
+    if (!(p.blob instanceof Blob)) p.blob = new Blob([p.blob], { type: p.mimeType });
+    return { blob: p.blob, url: URL.createObjectURL(p.blob), existingId: p.photoId };
+  });
   formTags = [...(poi.content.tags || [])];
-  document.getElementById('panel-fav-btn').style.display = 'none';
+
+  const favBtn = document.getElementById('panel-fav-btn');
+  favBtn.style.display = '';
+  favBtn.dataset.poiId = poiId;
+  favBtn.innerHTML = starIcon(poi.favorite);
+  favBtn.classList.toggle('active', !!poi.favorite);
+
   renderForm(poi);
-  openPanel('Modifier le lieu');
+  openPanel(poi.content.title || 'Lieu');
 }
 
 function renderForm(poi) {
@@ -838,7 +849,10 @@ function renderForm(poi) {
       <input id="file-input" type="file" accept="image/*" multiple onclick="watchPhotoPicker()" oncancel="photoPickerReturnedEmpty()" onchange="handleFileInput(event)" />
       <div class="photo-grid" id="photo-preview"></div>
     </div>
-    ${poi ? `<div class="detail-coords">${getCoordsDisplay(poi.location)}</div>` : ''}
+    ${poi ? `
+    <div class="detail-coords">${getCoordsDisplay(poi.location)}</div>
+    <div style="font-size:.72rem;color:var(--text-muted)">Ajouté le ${new Date(poi.createdAt).toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})}</div>
+    <button class="btn-danger form-delete-btn" type="button" onclick="deletePoi('${poi.id}')">Supprimer ce lieu</button>` : ''}
   `;
 
   renderPhotoPreview();
@@ -972,7 +986,7 @@ function renderPhotoPreview() {
   if (!grid) return;
   grid.innerHTML = formPhotos.map((p, i) => `
     <div class="photo-thumb">
-      <img src="${p.url}" alt="Photo ${i + 1}" />
+      <img src="${p.url}" alt="Photo ${i + 1}" onclick="openLightbox('${p.url}')" />
       <button class="del-photo" onclick="removeFormPhoto(${i})" type="button" aria-label="Retirer">${uiIcon('close')}</button>
     </div>
   `).join('');
@@ -1035,6 +1049,11 @@ async function savePoi() {
     content: { title, description, tags: formTags, category },
     photos: photoRefs,
   };
+  // Garder le favori (il peut avoir été changé avec l'étoile pendant la modification).
+  if (editPoiId) {
+    const stored = await dbGet('poi', editPoiId);
+    if (stored?.favorite) poi.favorite = true;
+  }
 
   await dbPut('poi', poi);
 
@@ -1053,46 +1072,8 @@ async function savePoi() {
 // DETAIL VIEW
 // ═══════════════════════════════════════════════
 async function openDetail(poiId) {
-  panelMode = 'detail';
-  const poi = await dbGet('poi', poiId);
-  const photos = await dbGetByIndex('photos', 'poiId', poiId);
-  const cat = getCat(poi.content.category);
-
-  const favBtn = document.getElementById('panel-fav-btn');
-  favBtn.style.display = '';
-  favBtn.dataset.poiId = poiId;
-  favBtn.innerHTML = starIcon(poi.favorite);
-  favBtn.classList.toggle('active', !!poi.favorite);
-
-  const body = document.getElementById('panel-body');
-  const footer = document.getElementById('panel-footer');
-
-  const tagsHtml = (poi.content.tags || []).map(t => `<span class="detail-tag">${escHtml(t)}</span>`).join('');
-  const photosHtml = photos.map(p => {
-    const url = URL.createObjectURL(p.blob);
-    return `<div class="detail-photo"><img src="${url}" onclick="openLightbox('${url}', '${poiId}')" loading="lazy"></div>`;
-  }).join('');
-
-  body.innerHTML = `
-    <div>
-      <div class="detail-category-badge" style="background:${cat.color};">${cat.icon} ${cat.label}</div>
-      <div class="detail-description">${escHtml(poi.content.description || 'Aucune description')}</div>
-    </div>
-    ${tagsHtml ? `<div class="detail-tags">${tagsHtml}</div>` : ''}
-    ${photosHtml ? `<div class="detail-photo-grid">${photosHtml}</div>` : ''}
-    <div class="detail-coords">${getCoordsDisplay(poi.location)}</div>
-    <div style="font-size:.72rem;color:var(--text-muted)">Ajouté le ${new Date(poi.createdAt).toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric'})}</div>
-  `;
-
-  document.getElementById('panel').classList.remove('form-mode');
-  footer.innerHTML = `
-    <button class="btn-danger" onclick="deletePoi('${poi.id}')">Supprimer</button>
-    <div style="flex:1"></div>
-    <button class="btn-secondary" onclick="closePanel()">Fermer</button>
-    <button class="btn-primary" onclick="openEditForm('${poi.id}')">Modifier</button>
-  `;
-
-  openPanel(poi.content.title || 'Détail');
+  // La fiche détail et le formulaire de modification ne font plus qu'un.
+  return openEditForm(poiId);
 }
 
 async function deletePoi(poiId) {
