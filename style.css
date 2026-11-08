@@ -248,8 +248,12 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
   /* Au-dessus des panneaux et menus, pour rester visible depuis n'importe quelle vue. */
   z-index: 1000;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 24px);
-  transform: translate(-50%, 20px);
+  top: calc(env(safe-area-inset-top) + var(--header-h) + 8px);
+  transform: translate(-50%, -24px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
   padding: 10px 16px;
   border-radius: 12px;
   background: var(--ink);
@@ -498,7 +502,7 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
   flex-shrink: 0;
 }
 .btn-star:hover { transform: scale(1.2); }
-.btn-star.active { filter: drop-shadow(0 0 3px rgba(245,196,0,.9)); }
+.btn-star { color: var(--ink); }
 
 .panel-body {
   flex: 1;
@@ -613,6 +617,7 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 }
 .photo-drop:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .photo-drop .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+.photo-drop .icon .ui-icon { display: block; margin: 0 auto; }
 #file-input { display: none; }
 
 .photo-grid {
@@ -807,7 +812,7 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
   color: var(--text-muted);
   padding: 40px 0;
 }
-.list-empty-state span { font-size: 2.5rem; }
+.list-empty-state .ui-icon { width: 2.5rem; height: 2.5rem; opacity: .6; }
 .list-empty-state p { font-size: .9rem; }
 
 .list-card {
@@ -1123,3 +1128,16 @@ body.long-press-holding .panel-overlay {
 .cat-btn .cat-icon .cat-svg { width: 1.4rem; height: 1.4rem; }
 .filter-row-icon { display: inline-flex; color: var(--text); }
 .filter-row-icon .cat-svg { width: 1.25rem; height: 1.25rem; }
+
+/* Icônes de l'interface : traits noirs (couleur du texte), même style que le menu
+   et les types de lieux. Elles prennent la taille du texte qui les entoure. */
+.ui-icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+  vertical-align: -0.2em;
+}
+.toast .ui-icon { width: 20px; height: 20px; }
+.popup-fav-btn, .list-fav-btn { color: var(--ink); }
+.tag-chip button .ui-icon { width: 12px; height: 12px; vertical-align: -1px; }
+.photo-thumb .del-photo .ui-icon { width: 12px; height: 12px; }

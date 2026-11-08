@@ -8,6 +8,30 @@ const CAT_ICON_PATHS = {
   avisiter:  '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2h.01"/>',
   favorite:  '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>',
 };
+// Icônes de l'interface, même style au trait que les types et le menu
+// (remplacent les emojis en couleur).
+const UI_ICON_PATHS = {
+  pin:     '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  image:   '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>',
+  camera:  '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  doc:     '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>',
+  close:   '<path d="M6 6l12 12M18 6 6 18"/>',
+  check:   '<path d="M5 12.5 10 17.5 19 7"/>',
+  back:    '<path d="M15 5l-7 7 7 7"/>',
+  success: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/>',
+  warning: '<path d="M12 3 2 20h20z"/><path d="M12 10v4.5"/><path d="M12 17.5h.01"/>',
+  offline: '<path d="M2 8.8a15 15 0 0 1 20 0"/><path d="M5 12.6a10 10 0 0 1 14 0"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01"/><path d="M3 3l18 18"/>',
+  wait:    '<path d="M7 3h10M7 21h10"/><path d="M8 3c0 5 8 5 8 9s-8 4-8 9"/><path d="M16 3c0 5-8 5-8 9s8 4 8 9"/>',
+  trash:   '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
+};
+function uiIcon(key, cls = 'ui-icon') {
+  return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${UI_ICON_PATHS[key]}</svg>`;
+}
+// Étoile des favoris : pleine (noire) si favori, au trait sinon.
+function starIcon(isFav) {
+  return `<svg class="ui-icon" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CAT_ICON_PATHS.favorite}</svg>`;
+}
+
 function iconSvg(key, cls = 'cat-svg') {
   const paths = CAT_ICON_PATHS[key] || CAT_ICON_PATHS[DEFAULT_CAT];
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
@@ -59,7 +83,7 @@ function latLngToImg(latlng) {
 function getCoordsDisplay(location) {
   if (!location) return '';
   const { x, y } = latLngToImg(location);
-  return `📍 X: ${x} px, Y: ${y} px`;
+  return `X : ${x} px, Y : ${y} px`;
 }
 
 // Couche de tuiles personnalisée
@@ -217,10 +241,10 @@ async function downloadMapTiles({ manual = false } = {}) {
     })();
     try {
         const ok = await tilesDownload;
-        if (manual) showToast(ok ? '✅ Carte disponible hors ligne' : '📶 Téléchargement incomplet, réessaie avec du réseau');
+        if (manual) showToast(ok ? 'Carte disponible hors ligne' : 'Téléchargement incomplet, réessaie avec du réseau', ok ? 'success' : 'offline');
     } catch (err) {
         console.warn('[TILES] Téléchargement impossible', err);
-        if (manual) showToast('⚠️ Téléchargement impossible');
+        if (manual) showToast('Téléchargement impossible', 'warning');
     } finally {
         tilesDownload = null;
         refreshTilesStatus().catch(() => {});
@@ -240,7 +264,7 @@ async function serverReachable() {
 
 async function ensureOnline() {
     if (await serverReachable()) return true;
-    showToast('📶 Connecte-toi à Internet d\'abord');
+    showToast('Connecte-toi à Internet d\'abord', 'offline');
     return false;
 }
 
@@ -248,7 +272,7 @@ async function clearCache() {
     if (!confirm('Vider le cache de l\'application ?')) return;
     if (!(await ensureOnline())) return;
     await deleteAppCaches();
-    showToast('✅ Cache vidé');
+    showToast('Cache vidé', 'success');
 }
 
 // Vide les caches de l'app mais garde la carte téléchargée (~70 Mo, long à refaire) :
@@ -261,9 +285,9 @@ async function deleteAppCaches() {
 
 async function deleteMapTiles() {
     if (!confirm('Dé-télécharger la carte ? Il faudra la retélécharger pour zoomer hors ligne.')) return;
-    if (tilesDownload) return showToast('⏳ Téléchargement en cours, attends la fin');
+    if (tilesDownload) return showToast('Téléchargement en cours, attends la fin', 'wait');
     await caches.delete(TILES_CACHE);
-    showToast('🗑️ Carte dé-téléchargée');
+    showToast('Carte dé-téléchargée', 'trash');
     refreshTilesStatus().catch(() => {});
 }
 
@@ -477,8 +501,8 @@ function setupLongPressToAdd() {
 function makeMarkerIcon(category, isFavorite = false) {
   const cat = getCat(category);
   const favBadge = isFavorite
-    ? `<circle cx="26" cy="6" r="6" fill="#F5C400" stroke="white" stroke-width="1.5"/>
-       <text x="26" y="10" text-anchor="middle" font-size="8" font-family="sans-serif">★</text>`
+    ? `<circle cx="26" cy="6" r="6" fill="white" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+       <g transform="translate(22 2) scale(.3333)" fill="#1f1f1f" stroke="#1f1f1f" stroke-width="2" stroke-linejoin="round">${CAT_ICON_PATHS.favorite}</g>`
     : '';
   const svg = `<svg viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 0C9.37 0 4 5.37 4 12c0 9 12 28 12 28s12-19 12-28C28 5.37 22.63 0 16 0z"
@@ -511,7 +535,7 @@ function addMarkerToMap(poi) {
         </div>
         <button class="popup-fav-btn" id="popup-fav-${poi.id}"
         onclick="toggleFavoriteFromPopup('${poi.id}', this)">
-        ${poi.favorite ? '🌟' : '⭐'}
+        ${starIcon(poi.favorite)}
         </button>
     </div>
     <div class="popup-photos" id="popup-photos-${poi.id}">
@@ -620,7 +644,7 @@ function openFilterMenu(context) {
          onclick="toggleFavoritesFilter(this)">
       <span class="filter-row-icon">${iconSvg('favorite')}</span>
       <span class="filter-row-label">Favoris</span>
-      <span class="filter-row-check"><span class="filter-row-check-icon">✓</span></span>
+      <span class="filter-row-check"><span class="filter-row-check-icon">${uiIcon('check')}</span></span>
     </div>
     <div class="filter-divider"></div>`;
 
@@ -633,7 +657,7 @@ function openFilterMenu(context) {
            onclick="toggleFilterRow(this, '${key}')">
         <span class="filter-row-icon">${cat.icon}</span>
         <span class="filter-row-label">${cat.label}</span>
-        <span class="filter-row-check"><span class="filter-row-check-icon">✓</span></span>
+        <span class="filter-row-check"><span class="filter-row-check-icon">${uiIcon('check')}</span></span>
       </div>`;
   }).join('');
 
@@ -801,14 +825,14 @@ function renderForm(poi) {
     <div class="form-group">
       <label class="form-label">Tags</label>
       <div class="tag-input-wrap" onclick="document.getElementById('tag-input').focus()">
-        <div id="tags-display">${formTags.map(t => `<span class="tag-chip">${escHtml(t)}<button onclick="removeTag('${escHtml(t)}');event.stopPropagation();" type="button">✕</button></span>`).join('')}</div>
+        <div id="tags-display">${formTags.map(t => `<span class="tag-chip">${escHtml(t)}<button onclick="removeTag('${escHtml(t)}');event.stopPropagation();" type="button" aria-label="Retirer">${uiIcon('close')}</button></span>`).join('')}</div>
         <input id="tag-input" class="form-input" type="text" placeholder="Ajouter un tag" onkeydown="handleTagKey(event)" />
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">Photos</label>
       <label class="photo-drop" for="file-input">
-        <span class="icon">📷</span>
+        <span class="icon">${uiIcon('camera')}</span>
         Glissez des images ici ou cliquez pour ajouter
       </label>
       <input id="file-input" type="file" accept="image/*" multiple onclick="watchPhotoPicker()" oncancel="photoPickerReturnedEmpty()" onchange="handleFileInput(event)" />
@@ -858,7 +882,7 @@ function renderTagsDisplay() {
   const el = document.getElementById('tags-display');
   if (!el) return;
   el.innerHTML = formTags.map(t =>
-    `<span class="tag-chip">${escHtml(t)}<button onclick="removeTag('${escHtml(t)}')" type="button">✕</button></span>`
+    `<span class="tag-chip">${escHtml(t)}<button onclick="removeTag('${escHtml(t)}')" type="button" aria-label="Retirer">${uiIcon('close')}</button></span>`
   ).join('');
 }
 
@@ -937,9 +961,9 @@ function showPhotoReadError(failed, total) {
   const several = total > 1;
   const what = !total ? 'Aucune photo n\'a été reçue.' : several ? `${failed} photo${failed > 1 ? 's' : ''} sur ${total} n'${failed > 1 ? 'ont' : 'a'} pas pu être ajoutée${failed > 1 ? 's' : ''}.` : 'La photo n\'a pas pu être ajoutée.';
   if (!navigator.onLine) {
-    alert(`📶 Pas de réseau\n\n${what}\n\nSans connexion, on ne peut pas ajouter une photo stockée sur iCloud (non téléchargée sur l'iPhone). Reconnecte-toi pour l'ajouter, ou prends la photo directement avec l'appareil photo.`);
+    alert(`Pas de réseau\n\n${what}\n\nSans connexion, on ne peut pas ajouter une photo stockée sur iCloud (non téléchargée sur l'iPhone). Reconnecte-toi pour l'ajouter, ou prends la photo directement avec l'appareil photo.`);
   } else {
-    alert(`⚠️ ${what}\n\nLe fichier n'a pas pu être lu. Si la photo est sur iCloud, attends qu'elle soit téléchargée puis réessaie.`);
+    alert(`${what}\n\nLe fichier n'a pas pu être lu. Si la photo est sur iCloud, attends qu'elle soit téléchargée puis réessaie.`);
   }
 }
 
@@ -949,7 +973,7 @@ function renderPhotoPreview() {
   grid.innerHTML = formPhotos.map((p, i) => `
     <div class="photo-thumb">
       <img src="${p.url}" alt="Photo ${i + 1}" />
-      <button class="del-photo" onclick="removeFormPhoto(${i})" type="button">✕</button>
+      <button class="del-photo" onclick="removeFormPhoto(${i})" type="button" aria-label="Retirer">${uiIcon('close')}</button>
     </div>
   `).join('');
 }
@@ -968,8 +992,8 @@ async function savePoi() {
   const category = document.getElementById('f-category').value;
   const description = document.getElementById('f-desc').value.trim();
 
-  if (!title) { showToast('⚠️ Titre requis'); return; }
-  if (!category) { showToast('⚠️ Catégorie requise'); return; }
+  if (!title) { showToast('Titre requis', 'warning'); return; }
+  if (!category) { showToast('Catégorie requise', 'warning'); return; }
 
   const now = new Date().toISOString();
   const id = editPoiId || `poi_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -1022,7 +1046,7 @@ async function savePoi() {
   renderList();
 
   closePanel();
-  showToast(editPoiId ? '✅ Lieu mis à jour' : '✅ Lieu ajouté !');
+  showToast(editPoiId ? 'Lieu mis à jour' : 'Lieu ajouté !', 'success');
 }
 
 // ═══════════════════════════════════════════════
@@ -1037,7 +1061,7 @@ async function openDetail(poiId) {
   const favBtn = document.getElementById('panel-fav-btn');
   favBtn.style.display = '';
   favBtn.dataset.poiId = poiId;
-  favBtn.textContent = poi.favorite ? '🌟' : '⭐';
+  favBtn.innerHTML = starIcon(poi.favorite);
   favBtn.classList.toggle('active', !!poi.favorite);
 
   const body = document.getElementById('panel-body');
@@ -1080,7 +1104,7 @@ async function deletePoi(poiId) {
   updatePoiCount();
   renderList();
   closePanel();
-  showToast('🗑️ Lieu supprimé');
+  showToast('Lieu supprimé', 'trash');
 }
 
 async function toggleFavorite() {
@@ -1090,7 +1114,7 @@ async function toggleFavorite() {
   poi.favorite = !poi.favorite;
   poi.updatedAt = new Date().toISOString();
   await dbPut('poi', poi);
-  btn.textContent = poi.favorite ? '🌟' : '⭐';
+  btn.innerHTML = starIcon(poi.favorite);
   btn.classList.toggle('active', poi.favorite);
   if (markers[poiId]) {
     markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite));
@@ -1105,7 +1129,7 @@ async function toggleFavorite() {
   }
   allPois = await dbGetAll('poi');
   renderList();
-  showToast(poi.favorite ? '🌟 Ajouté aux favoris' : '⭐ Retiré des favoris');
+  showToast(poi.favorite ? 'Ajouté aux favoris' : 'Retiré des favoris', poi.favorite ? 'star' : 'star-off');
 }
 
 // ═══════════════════════════════════════════════
@@ -1154,7 +1178,7 @@ function lightboxGoToMap() {
 // EXPORT
 // ═══════════════════════════════════════════════
 async function exportData() {
-  showToast('⏳ Export en cours…');
+  showToast('Export en cours…', 'wait');
   const pois = await dbGetAll('poi');
   const full = await Promise.all(pois.map(async poi => {
     const photos = await dbGetByIndex('photos', 'poiId', poi.id);
@@ -1172,7 +1196,7 @@ async function exportData() {
   a.href = url; a.download = `paris-map-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast('✅ Export terminé !');
+  showToast('Export terminé !', 'success');
 }
 
 function blobToBase64(blob) {
@@ -1193,11 +1217,12 @@ function escHtml(str) {
 }
 
 // Un nouveau message remplace le précédent et repart pour toute sa durée
-// (sinon le minuteur de « ⏳ … » masquait trop tôt le « ✅ … » qui suit).
+// (sinon le minuteur du message « en cours » masquait trop tôt celui de succès).
 let toastTimer = null;
-function showToast(msg, duration = 2800) {
+function showToast(msg, icon = null, duration = 2800) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  const svg = icon === 'star' ? starIcon(true) : icon === 'star-off' ? starIcon(false) : icon ? uiIcon(icon) : '';
+  t.innerHTML = `${svg}<span>${escHtml(msg)}</span>`;
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), duration);
@@ -1210,7 +1235,7 @@ function showPendingResetToast() {
     if (!sessionStorage.getItem(RESET_DONE_KEY)) return;
     sessionStorage.removeItem(RESET_DONE_KEY);
   } catch { return; }
-  showToast('✅ Application réinitialisée');
+  showToast('Application réinitialisée', 'success');
 }
 
 function updatePoiCount() {
@@ -1323,7 +1348,7 @@ async function renderList() {
   if (!filtered.length) {
     body.innerHTML = `
       <div class="list-empty-state">
-        <span>📍</span>
+        ${uiIcon('pin')}
         <p>Aucun lieu pour ces filtres.</p>
       </div>`;
     return;
@@ -1361,7 +1386,7 @@ async function renderList() {
             <span class="list-card-badge" style="background:${cat.color}">${cat.icon} ${cat.label}</span>
             <div class="list-card-title">${escHtml(poi.content.title || 'Sans titre')}</div>
             <button class="list-fav-btn" onclick="toggleFavoriteFromList('${poi.id}')">
-                ${poi.favorite ? '🌟' : '⭐'}
+                ${starIcon(poi.favorite)}
             </button>
         </div>
         ${descHtml}
@@ -1369,7 +1394,7 @@ async function renderList() {
         ${tagsSection}
         <div class="list-card-actions">
             <button class="popup-btn" onclick="openDetailInList('${poi.id}')">Voir détails</button>
-            <button class="popup-btn primary" onclick="goToPoiOnMap('${poi.id}')">📍 Carte</button>
+            <button class="popup-btn primary" onclick="goToPoiOnMap('${poi.id}')">${uiIcon('pin')} Carte</button>
         </div>
       </div>`;
   }).join('');
@@ -1402,7 +1427,7 @@ async function deleteAllPois() {
   allPois = [];
   updatePoiCount();
   renderList();
-  showToast('🗑️ Tous les lieux ont été supprimés');
+  showToast('Tous les lieux ont été supprimés', 'trash');
 }
 
 // ═══════════════════════════════════════════════
@@ -1437,7 +1462,7 @@ function withTimeout(promise, ms) {
         await withTimeout(initDB(), 5000);
     } catch (err) {
         console.error('❌ IndexedDB indisponible', err);
-        showToast('⚠️ Stockage indisponible dans ce navigateur : tes lieux ne seront pas enregistrés');
+        showToast('Stockage indisponible dans ce navigateur : tes lieux ne seront pas enregistrés', 'warning');
         return;
     }
     allPois = await dbGetAll('poi');
@@ -1471,7 +1496,7 @@ async function renderPhotosView() {
   if (!allPhotos.length) {
     body.innerHTML = `
       <div class="list-empty-state">
-        <span>🖼️</span>
+        ${uiIcon('image')}
         <p>Aucune photo enregistrée.</p>
       </div>`;
     return;
@@ -1497,13 +1522,13 @@ async function toggleFavoriteFromPopup(poiId, btn) {
   poi.favorite = !poi.favorite;
   poi.updatedAt = new Date().toISOString();
   await dbPut('poi', poi);
-  btn.textContent = poi.favorite ? '🌟' : '⭐';
+  btn.innerHTML = starIcon(poi.favorite);
   if (markers[poiId]) {
     markers[poiId].setIcon(makeMarkerIcon(poi.content.category, poi.favorite));
   }
   allPois = await dbGetAll('poi');
   renderList();
-  showToast(poi.favorite ? '🌟 Ajouté aux favoris' : '⭐ Retiré des favoris');
+  showToast(poi.favorite ? 'Ajouté aux favoris' : 'Retiré des favoris', poi.favorite ? 'star' : 'star-off');
 }
 
 async function toggleFavoriteFromList(poiId) {
@@ -1516,7 +1541,7 @@ async function toggleFavoriteFromList(poiId) {
   }
   allPois = await dbGetAll('poi');
   renderList();
-  showToast(poi.favorite ? '🌟 Ajouté aux favoris' : '⭐ Retiré des favoris');
+  showToast(poi.favorite ? 'Ajouté aux favoris' : 'Retiré des favoris', poi.favorite ? 'star' : 'star-off');
 }
 
 async function openDetailInList(poiId) {
@@ -1535,7 +1560,7 @@ async function openDetailInList(poiId) {
 
   document.getElementById('list-body').innerHTML = `
     <div class="list-detail-view">
-      <button class="btn-secondary list-detail-back" onclick="renderList()">← Retour</button>
+      <button class="btn-secondary list-detail-back" onclick="renderList()">${uiIcon('back')} Retour</button>
       <div class="detail-category-badge" style="background:${cat.color}">${cat.icon} ${cat.label}</div>
       <h2 class="list-detail-title">${escHtml(poi.content.title || 'Sans titre')}</h2>
       <div class="detail-description">${escHtml(poi.content.description || 'Aucune description')}</div>
