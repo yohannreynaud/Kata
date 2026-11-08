@@ -6,7 +6,7 @@ const CAT_ICON_PATHS = {
   salle:     '<path d="M3 9 12 4l9 5z"/><path d="M6 11.5v6.5M10 11.5v6.5M14 11.5v6.5M18 11.5v6.5"/><path d="M3 20.5h18"/>',
   oeuvre:    '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   avisiter:  '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2h.01"/>',
-  favorite:  '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>',
+  favorite:  '<path d="M18 21l-6-4.5L6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/>',
 };
 // Icônes de l'interface, même style au trait que les types et le menu
 // (remplacent les emojis en couleur).
@@ -27,7 +27,7 @@ const UI_ICON_PATHS = {
 function uiIcon(key, cls = 'ui-icon') {
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${UI_ICON_PATHS[key]}</svg>`;
 }
-// Étoile des favoris : pleine (noire) si favori, au trait sinon.
+// Marque-page des favoris : plein (noir) si favori, au trait sinon.
 function starIcon(isFav) {
   return `<svg class="ui-icon" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CAT_ICON_PATHS.favorite}</svg>`;
 }
