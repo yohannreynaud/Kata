@@ -858,13 +858,54 @@ function renderTagsDisplay() {
 
 async function handleFileInput(e) {
   const files = Array.from(e.target.files);
+  e.target.value = '';
+  let failed = 0;
   for (const file of files) {
-    if (!file.type.startsWith('image/')) continue;
-    const url = URL.createObjectURL(file);
-    formPhotos.push({ blob: file, url });
+    if (file.type && !file.type.startsWith('image/')) continue;
+    const blob = await readPickedImage(file);
+    if (!blob) { failed++; continue; }
+    formPhotos.push({ blob, url: URL.createObjectURL(blob) });
   }
   renderPhotoPreview();
-  e.target.value = '';
+  if (failed) showPhotoReadError(failed, files.length);
+}
+
+// Lit réellement le fichier choisi. Sur iPhone, une photo restée sur iCloud
+// (non téléchargée sur l'appareil) ne peut pas être lue sans réseau : la
+// lecture échoue, le fichier est vide ou l'image ne se décode pas.
+async function readPickedImage(file) {
+  try {
+    if (!file.size) return null;
+    const buf = await file.arrayBuffer();
+    if (!buf.byteLength) return null;
+    const blob = new Blob([buf], { type: file.type || 'image/jpeg' });
+    return (await canDecodeImage(blob)) ? blob : null;
+  } catch (err) {
+    console.warn('Lecture de la photo impossible', err);
+    return null;
+  }
+}
+
+function canDecodeImage(blob) {
+  return new Promise(res => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    const done = ok => { clearTimeout(timer); URL.revokeObjectURL(url); res(ok); };
+    const timer = setTimeout(() => done(true), 8000); // on ne bloque pas si le décodage traîne
+    img.onload = () => done(img.naturalWidth > 0);
+    img.onerror = () => done(false);
+    img.src = url;
+  });
+}
+
+function showPhotoReadError(failed, total) {
+  const several = total > 1;
+  const what = several ? `${failed} photo${failed > 1 ? 's' : ''} sur ${total} n'${failed > 1 ? 'ont' : 'a'} pas pu être ajoutée${failed > 1 ? 's' : ''}.` : 'La photo n\'a pas pu être ajoutée.';
+  if (!navigator.onLine) {
+    alert(`📶 Pas de réseau\n\n${what}\n\nSans connexion, on ne peut pas ajouter une photo stockée sur iCloud (non téléchargée sur l'iPhone). Reconnecte-toi pour l'ajouter, ou prends la photo directement avec l'appareil photo.`);
+  } else {
+    alert(`⚠️ ${what}\n\nLe fichier n'a pas pu être lu. Si la photo est sur iCloud, attends qu'elle soit téléchargée puis réessaie.`);
+  }
 }
 
 function renderPhotoPreview() {
