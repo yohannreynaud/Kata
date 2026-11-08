@@ -17,6 +17,8 @@
   <script>
     // Apply the saved theme color before the page draws, so it never flashes orange first.
     try { const color = localStorage.getItem('color'); if (color) document.documentElement.dataset.color = color; } catch {}
+    // Same for the dark map, so the map never flashes light first.
+    try { if (localStorage.getItem('darkMap') === '1') document.documentElement.dataset.darkMap = ''; } catch {}
   </script>
 </head>
 <body data-view="map">
@@ -109,6 +111,13 @@
             <button class="swatch" type="button" data-color="violet" style="background: #6a3fb5">Violet</button>
           </div>
         </div>
+      </div>
+      <div class="settings-row">
+        <label for="dark-map-toggle">
+          <div class="settings-label">Carte sombre</div>
+          <div class="settings-desc">Inverse les couleurs de la carte. Les pins et l'interface ne changent pas.</div>
+        </label>
+        <input id="dark-map-toggle" class="switch" type="checkbox" role="switch">
       </div>
       <div class="settings-row">
         <div>
