@@ -1165,40 +1165,6 @@ function lightboxGoToMap() {
 }
 
 // ═══════════════════════════════════════════════
-// EXPORT
-// ═══════════════════════════════════════════════
-async function exportData() {
-  showToast('Export en cours…', 'wait');
-  const pois = await dbGetAll('poi');
-  const full = await Promise.all(pois.map(async poi => {
-    const photos = await dbGetByIndex('photos', 'poiId', poi.id);
-    const photosData = await Promise.all(photos.map(async p => {
-      const data = await blobToBase64(p.blob);
-      return { photoId: p.photoId, mimeType: p.mimeType, sizeBytes: p.sizeBytes, data };
-    }));
-    return { ...poi, photosData };
-  }));
-
-  const json = JSON.stringify({ version: 1, exportDate: new Date().toISOString(), pois: full }, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `paris-map-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Export terminé !', 'success');
-}
-
-function blobToBase64(blob) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = () => res(reader.result.split(',')[1]);
-    reader.onerror = rej;
-    reader.readAsDataURL(blob);
-  });
-}
-
-// ═══════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════
 function escHtml(str) {
