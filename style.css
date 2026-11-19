@@ -571,7 +571,7 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 
 .cat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 .cat-btn {
