@@ -1331,6 +1331,7 @@ function switchView(viewName) {
   if (viewName === 'map') setTimeout(() => map.invalidateSize(), 10);
   if (viewName === 'list') renderList();
   if (viewName === 'photos') renderPhotosView();
+  if (viewName === 'search') openSearch();
   if (viewName === 'maintenance') {
     navigator.serviceWorker?.controller?.postMessage({ type: 'GET_VERSION' });
     refreshTilesStatus().catch(() => {});
@@ -1461,6 +1462,7 @@ async function renderList() {
 function goToPoiOnMap(poiId) {
   const poi = allPois.find(p => p.id === poiId);
   if (!poi) return;
+  showPoiMarker(poi);
   switchView('map');
 
   setTimeout(() => {
@@ -1470,6 +1472,84 @@ function goToPoiOnMap(poiId) {
     }
   }, 50);
 }
+// Un lieu caché par le filtre de la carte (type décoché, ou « favoris seulement ») n'aurait
+// pas de pin où ouvrir la bulle : on réaffiche son type, et tous les lieux si besoin.
+function showPoiMarker(poi) {
+  const cat = CATEGORIES[poi.content.category] ? poi.content.category : DEFAULT_CAT;
+  const hiddenByFav = filterFavoritesOnlyMap && !poi.favorite;
+  if (activeCategories.has(cat) && !hiddenByFav) return;
+  activeCategories.add(cat);
+  if (hiddenByFav) filterFavoritesOnlyMap = false;
+  const context = currentFilterContext;
+  currentFilterContext = 'map';
+  applyFilters();
+  currentFilterContext = context;
+}
+
+// ═══════════════════════════════════════════════
+// RECHERCHE
+// ═══════════════════════════════════════════════
+// Comme dans Flash-cards : on tape, les lieux trouvés s'affichent au fur et à mesure.
+// Un résultat ouvre la carte centrée sur son pin, bulle ouverte.
+const search = {
+  input: document.getElementById('search-input'),
+  status: document.getElementById('search-status'),
+  results: document.getElementById('search-results'),
+  entries: [],
+};
+const SEARCH_LIMIT = 100;
+
+function searchRow(poi) {
+  const cat = getCat(poi.content.category);
+  const li = document.createElement('li');
+  const button = Object.assign(document.createElement('button'), { type: 'button', className: 'search-result' });
+  const main = Object.assign(document.createElement('span'), { className: 'search-main' });
+  main.append(Object.assign(document.createElement('span'), { className: 'search-title', textContent: poi.content.title || 'Sans titre' }));
+  if (poi.content.description) main.append(Object.assign(document.createElement('span'), { className: 'search-desc', textContent: poi.content.description }));
+  const side = Object.assign(document.createElement('span'), { className: 'search-side' });
+  const catEl = Object.assign(document.createElement('span'), { className: 'search-cat' });
+  catEl.style.color = cat.color;
+  catEl.innerHTML = `${cat.icon}${escHtml(cat.label)}`;
+  side.append(catEl);
+  const tags = (poi.content.tags || []).slice(0, 4).map(t => `#${t}`).join(' ');
+  if (tags) side.append(Object.assign(document.createElement('span'), { className: 'search-tags', textContent: tags }));
+  button.append(main, side);
+  button.addEventListener('click', () => {
+    search.input.blur();
+    goToPoiOnMap(poi.id);
+  });
+  li.append(button);
+  return li;
+}
+
+function renderSearch() {
+  const query = search.input.value;
+  const total = search.entries.length;
+  if (!query.trim()) {
+    search.status.textContent = `${total} lieu${total !== 1 ? 'x' : ''} enregistré${total !== 1 ? 's' : ''}`;
+    search.results.replaceChildren();
+    return;
+  }
+  const found = searchPois(search.entries, query);
+  search.status.textContent = !found.length ? 'Aucun lieu trouvé'
+    : found.length > SEARCH_LIMIT ? `${found.length} lieux, les ${SEARCH_LIMIT} premiers affichés`
+    : `${found.length} lieu${found.length > 1 ? 'x' : ''}`;
+  search.results.replaceChildren(...found.slice(0, SEARCH_LIMIT).map(({ poi }) => searchRow(poi)));
+}
+
+search.input.addEventListener('input', renderSearch);
+search.input.addEventListener('keydown', event => { if (event.key === 'Enter') search.input.blur(); });
+
+// Relit les lieux à chaque ouverture : un lieu ajouté ou modifié est aussitôt trouvable.
+// À égalité, les plus récents d'abord, comme dans l'onglet Lieux.
+function openSearch() {
+  search.entries = allPois.slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map(poi => searchEntry(poi, getCat(poi.content.category).label));
+  renderSearch();
+  search.input.focus();
+}
+
 // ═══════════════════════════════════════════════
 // PARAMÈTRES
 // ═══════════════════════════════════════════════
