@@ -25,6 +25,7 @@ Liste exhaustive des fonctionnalités :
 - On peut ensuite cliquer sur les points d'intérêts déjà créés pour voir leur description, leurs photos, leurs catégories et leurs tags.
 - Il est possible de modifier les points d'intérêts déjà créés.
 - Il est possible de supprimer les points d'intérêts déjà créés.
+- Une **recherche** (menu ☰ > Recherche) retrouve un lieu par son titre, ses tags, sa description ou son type, sans tenir compte des accents ; toucher un résultat ouvre la carte centrée sur son pin, bulle ouverte.
 - Il est  possible de trier les points d'intérêt existants par catégories (culture, restauration, etc. elles ont été renseignée à la création du point d'intérêt par l'utilisateur).
 - L'application est une PWA, elle peut donc être installée sur mobile et utilisée hors ligne.
 
