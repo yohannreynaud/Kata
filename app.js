@@ -6,6 +6,7 @@ const CAT_ICON_PATHS = {
   salle:     '<path d="M3 9 12 4l9 5z"/><path d="M6 11.5v6.5M10 11.5v6.5M14 11.5v6.5M18 11.5v6.5"/><path d="M3 20.5h18"/>',
   oeuvre:    '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   entree:    '<path d="M3 20v-4h4.5v-4H12V8h4.5V4H21v16z"/>',
+  chatiere:  '<path d="M2 20.5h20"/><path d="M4 20.5V12a8 8 0 0 1 16 0v8.5"/><path d="M8.5 20.5v-6a3.5 3.5 0 0 1 7 0v6"/>',
   avisiter:  '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8"/><path d="M12 17.2h.01"/>',
   favorite:  '<path d="M18 21l-6-4.5L6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/>',
 };
@@ -43,6 +44,7 @@ const CATEGORIES = {
   oeuvre:    { label: "Œuvre",        color: "#E63946" },
   avisiter:  { label: "À visiter",    color: "#F4A261" },
   entree:    { label: "Entrée",       color: "#2A9D8F" },
+  chatiere:  { label: "Chatière",     color: "#8E5CA8" },
 };
 // Type par défaut d'un nouveau lieu, et type de secours pour un lieu sans type connu
 // (l'ordre ci-dessus n'est que l'ordre d'affichage).
