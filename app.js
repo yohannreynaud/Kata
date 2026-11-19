@@ -103,8 +103,20 @@ const ImageTileLayer = L.TileLayer.extend({
     // Y inversé par rapport au générateur de tuiles
     const y = (nTilesY - 1) - coords.y;
     return `tiles/${coords.z}/${coords.x}/${y}.png`;
+  },
+
+  // Zone de tuiles à afficher, élargie d'une marge tout autour de l'écran : les
+  // tuiles voisines sont chargées à l'avance et sont déjà là quand on fait glisser
+  // la carte, au lieu d'apparaître une fois le doigt relâché.
+  _getTiledPixelBounds: function(center) {
+    const b = L.TileLayer.prototype._getTiledPixelBounds.call(this, center);
+    const margin = this.getTileSize().multiplyBy(TILE_PRELOAD_MARGIN);
+    return L.bounds(b.min.subtract(margin), b.max.add(margin));
   }
 });
+
+// Nombre de rangées de tuiles préchargées autour de l'écran.
+const TILE_PRELOAD_MARGIN = 1;
 
 
 
@@ -392,7 +404,15 @@ function initMap() {
         bounds,
         noWrap: true,
         errorTileUrl: '',
-        keepBuffer: 0,
+        // Sur mobile, Leaflet attend par défaut la fin du geste (doigt relâché)
+        // pour charger les tuiles. On les charge pendant le glissement et le
+        // pincement, au plus toutes les 100 ms.
+        updateWhenIdle:    false,
+        updateWhenZooming: true,
+        updateInterval:    100,
+        // Garde en mémoire les tuiles juste sorties de l'écran : revenir en arrière
+        // ne les recharge pas.
+        keepBuffer: 2,
     }).addTo(map);
 
     for (const key of Object.keys(CATEGORIES)) {
