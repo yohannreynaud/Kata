@@ -656,8 +656,15 @@ function addMarkerToMap(poi) {
   const marker = L.marker([poi.location.lat, poi.location.lng], {
     icon: makeMarkerIcon(cat, !!poi.favorite),
   });
+  // Contenu construit une seule fois par ouverture : Leaflet rappelle cette fonction
+  // à chaque popup.update() (zoom, arrivée des photos…). La reconstruire à chaque fois
+  // relançait le chargement des photos, qui rappelait update() : boucle sans fin, et
+  // les miniatures n'apparaissaient jamais.
+  let popupContent = null;
   marker.bindPopup(() => {
+    if (popupContent) return popupContent;
     const div = document.createElement('div');
+    div.className = 'popup-body';
     const catInfo = getCat(cat);
 
     div.innerHTML = `
@@ -666,16 +673,22 @@ function addMarkerToMap(poi) {
         <div class="popup-title">${escHtml(poi.content.title || 'Sans titre')} <span class="popup-cat">(${catInfo.label})</span></div>
         </div>
         <button class="popup-fav-btn" id="popup-fav-${poi.id}"
-        onclick="toggleFavoriteFromPopup('${poi.id}', this)">
+        onclick="event.stopPropagation(); toggleFavoriteFromPopup('${poi.id}', this)">
         ${starIcon(poi.favorite)}
         </button>
     </div>
     <div class="popup-photos" id="popup-photos-${poi.id}"></div>
     `;
+    // Toucher la bulle (hors étoile) ouvre la fiche du lieu, modifiable.
+    div.addEventListener('click', () => {
+      map.closePopup();
+      openDetail(poi.id);
+    });
 
     // On passe le conteneur directement : à ce moment, le div n'est pas encore
     // inséré dans la page, donc un getElementById ne le trouverait pas.
     loadPopupPhotos(poi.id, div.querySelector('.popup-photos'));
+    popupContent = div;
     return div;
   }, { maxWidth: 260, closeButton: false });   // pas de croix : on ferme en tapant à côté
 
@@ -685,7 +698,13 @@ function addMarkerToMap(poi) {
     e.popup.options.offset = popupOffset();
     e.popup.update();
   });
-  marker.on('popupclose', () => { if (popupPoiId === poi.id) popupPoiId = null; refreshSelectedMarker(); });
+  marker.on('popupclose', () => {
+    if (popupPoiId === poi.id) popupPoiId = null;
+    refreshSelectedMarker();
+    // Libère les miniatures ; la prochaine ouverture relit les photos à jour.
+    popupContent?.querySelectorAll('img.popup-thumb').forEach(img => URL.revokeObjectURL(img.src));
+    popupContent = null;
+  });
   // Réaffiché après un filtre : Leaflet recrée l'icône, on remet l'état sélectionné.
   marker.on('add', () => refreshSelectedMarker());
   marker.addTo(layers[cat]);
@@ -711,26 +730,24 @@ async function loadPopupPhotos(poiId, container) {
     return;
   }
 
-  // Limiter à 3 miniatures
-  const thumbs = photos.slice(0, 3);
-
-  const html = await Promise.all(thumbs.map(async p => {
+  const html = photos.map(p => {
     // Normalisation iOS (au cas où)
     if (!(p.blob instanceof Blob)) {
       p.blob = new Blob([p.blob], { type: p.mimeType });
     }
-
     const url = URL.createObjectURL(p.blob);
-
-    return `<img class="popup-thumb" src="${url}" onclick="openLightbox('${url}', '${poiId}')" />`;
-
-  }));
+    return `<img class="popup-thumb" src="${url}" alt="" draggable="false" />`;
+  });
 
   container.innerHTML = `
     <div class="popup-thumb-row">
       ${html.join('')}
     </div>
   `;
+  // Une photo illisible (ex. restée sur iCloud) est simplement masquée.
+  container.querySelectorAll('img.popup-thumb').forEach(img => {
+    img.addEventListener('error', () => img.remove(), { once: true });
+  });
   // Les miniatures arrivent après l'ouverture : on recale la bulle au-dessus du pin.
   const popup = markers[poiId]?.getPopup();
   if (popup?.isOpen()) popup.update();
