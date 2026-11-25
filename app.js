@@ -435,8 +435,12 @@ function initMap() {
 }
 
 // Échelle des pins : PIN_SCALE_MIN au zoom minimum, PIN_SCALE_MAX au zoom maximum.
-const PIN_SCALE_MIN = 0.35;
+const PIN_SCALE_MIN = 0.3;    // rond de 9 px : un point de couleur
 const PIN_SCALE_MAX = 1.15;
+// Part de la plage de zoom (0 = dézoom max, 1 = zoom max) où le rond n'est qu'un
+// point, puis sur laquelle l'icône réapparaît progressivement.
+const PIN_DOT_UNTIL = 0.08;
+const PIN_DOT_FADE  = 0.17;
 const PIN_SELECTED_FACTOR = 1.5;   // pin touché ou sélectionné
 let pinScale = 1;
 function updatePinScale(zoom) {
@@ -444,14 +448,18 @@ function updatePinScale(zoom) {
   const t = Math.min(1, Math.max(0, (zoom - minZoom) / (maxZoom - minZoom)));
   pinScale = PIN_SCALE_MIN + t * (PIN_SCALE_MAX - PIN_SCALE_MIN);
   map.getContainer().style.setProperty('--pin-scale', pinScale.toFixed(3));
+  // Icône visible dès qu'on s'éloigne du dézoom maximal ; tout près du dézoom
+  // maximal elle s'efface et le rond devient un simple point de couleur.
+  const iconOpacity = Math.min(1, Math.max(0, (t - PIN_DOT_UNTIL) / PIN_DOT_FADE));
+  map.getContainer().style.setProperty('--pin-icon-opacity', iconOpacity.toFixed(3));
   // La bulle ouverte suit la hauteur du pin agrandi.
   const popup = map._popup;
   if (popup && map.hasLayer(popup)) { popup.options.offset = popupOffset(); popup.update(); }
 }
 function popupOffset() {
-  // 7 px : décalage par défaut de Leaflet (pointe de la bulle) ; la bulle s'arrête
-  // juste au-dessus du pin agrandi.
-  return L.point(0, 7 - Math.round(40 * pinScale * PIN_SELECTED_FACTOR) - 2);
+  // 7 px : décalage par défaut de Leaflet (pointe de la bulle) ; le pin est centré
+  // sur le lieu, la bulle s'arrête juste au-dessus de la moitié haute du rond agrandi.
+  return L.point(0, 7 - Math.round(PIN_SIZE / 2 * pinScale * PIN_SELECTED_FACTOR) - 2);
 }
 
 // ═══════════════════════════════════════════════
@@ -579,23 +587,24 @@ function setupLongPressToAdd() {
 // ═══════════════════════════════════════════════
 // MARKERS
 // ═══════════════════════════════════════════════
+// Pin rond : disque de la couleur du type, icône du type au centre. Le centre du
+// rond est exactement sur la coordonnée du lieu.
+const PIN_SIZE = 30;
 function makeMarkerIcon(category, isFavorite = false) {
   const cat = getCat(category);
   const favBadge = isFavorite
-    ? `<circle cx="26" cy="6" r="6" fill="white" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-       <g transform="translate(22 2) scale(.3333)" fill="#1f1f1f" stroke="#1f1f1f" stroke-width="2" stroke-linejoin="round">${CAT_ICON_PATHS.favorite}</g>`
+    ? `<g class="pin-detail"><circle cx="25" cy="5" r="5" fill="white" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+       <g transform="translate(21.75 1.75) scale(.2708)" fill="#1f1f1f" stroke="#1f1f1f" stroke-width="2" stroke-linejoin="round">${CAT_ICON_PATHS.favorite}</g></g>`
     : '';
-  const svg = `<svg viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
-    <path d="M16 0C9.37 0 4 5.37 4 12c0 9 12 28 12 28s12-19 12-28C28 5.37 22.63 0 16 0z"
-      fill="${cat.color}" stroke="rgba(0,0,0,.2)" stroke-width="1"/>
-    <circle cx="16" cy="12" r="8" fill="white" fill-opacity=".95"/>
-    <g transform="translate(9.5 5.5) scale(.5417)" fill="none" stroke="#1f1f1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON_PATHS[category] || CAT_ICON_PATHS[DEFAULT_CAT]}</g>
+  const svg = `<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="15" cy="15" r="14" fill="${cat.color}" stroke="white" stroke-width="2"/>
+    <g class="pin-detail" transform="translate(7.5 7.5) scale(.625)" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON_PATHS[category] || CAT_ICON_PATHS[DEFAULT_CAT]}</g>
     ${favBadge}
   </svg>`;
   return L.divIcon({
     html: `<div class="custom-marker">${svg}</div>`,
-    iconSize: [32, 40],
-    iconAnchor: [16, 40],
+    iconSize: [PIN_SIZE, PIN_SIZE],
+    iconAnchor: [PIN_SIZE / 2, PIN_SIZE / 2],
     popupAnchor: [0, 0],   // hauteur gérée par popupOffset(), selon le zoom
     className: '',
   });
