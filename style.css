@@ -819,18 +819,25 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 .leaflet-marker-icon.leaflet-interactive { pointer-events: none; }
 
 
+.popup-body { cursor: pointer; }
+/* Toutes les photos du lieu, en bande défilable si elles dépassent la largeur. */
 .popup-thumb-row {
   display: flex;
   gap: 4px;
-  margin: 6px 0;
+  margin: 6px 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.popup-thumb-row::-webkit-scrollbar { display: none; }
 
 .popup-thumb {
-  width: 60px;
-  height: 60px;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: 6px;
+  background: var(--bg);
 }
 
 .popup-photo-loading {
