@@ -114,8 +114,50 @@ const ImageTileLayer = L.TileLayer.extend({
     const b = L.TileLayer.prototype._getTiledPixelBounds.call(this, center);
     const margin = this.getTileSize().multiplyBy(TILE_PRELOAD_MARGIN);
     return L.bounds(b.min.subtract(margin), b.max.add(margin));
+  },
+
+  // Niveau de tuiles affiché pour un zoom donné. Leaflet prend par défaut le niveau
+  // le plus proche (Math.round) : au zoom 4,4 il affiche les tuiles du niveau 4
+  // agrandies, et au dézoom maximal (zoom 1) une image de 511 px de large étirée sur
+  // tout l'écran, floue sur un téléphone. On décale ce choix vers le niveau supérieur
+  // (TILE_ZOOM_BIAS) : les tuiles sont alors réduites à l'écran au lieu d'être
+  // agrandies, donc nettes, et les plus précises restent affichées plus longtemps.
+  _clampZoom: function(zoom) {
+    const o = this.options;
+    let z = Math.round(zoom + TILE_ZOOM_BIAS);
+    if (o.minNativeZoom !== undefined && z < o.minNativeZoom) z = o.minNativeZoom;
+    if (o.maxNativeZoom !== undefined && z > o.maxNativeZoom) z = o.maxNativeZoom;
+    return z;
+  },
+
+  // Copie de GridLayer._setView (Leaflet 1.9.4) qui arrondissait le zoom avant
+  // _clampZoom : on lui passe le zoom brut pour que le décalage s'applique.
+  _setView: function(center, zoom, noPrune, noUpdate) {
+    const o = this.options;
+    const rounded = Math.round(zoom);
+    const tileZoom = (o.maxZoom !== undefined && rounded > o.maxZoom) ||
+                     (o.minZoom !== undefined && rounded < o.minZoom)
+      ? undefined : this._clampZoom(zoom);
+    const tileZoomChanged = o.updateWhenZooming && tileZoom !== this._tileZoom;
+    if (!noUpdate || tileZoomChanged) {
+      this._tileZoom = tileZoom;
+      if (this._abortLoading) this._abortLoading();
+      this._updateLevels();
+      this._resetGrid();
+      if (tileZoom !== undefined) this._update(center);
+      if (!noPrune) this._pruneTiles();
+      this._noPrune = !!noPrune;
+    }
+    this._setZoomTransforms(center, zoom);
   }
 });
+
+// Décalage du niveau de tuiles (voir _clampZoom). 0 = comportement Leaflet ;
+// 0,5 = toujours le niveau au-dessus (tuiles jamais agrandies) ; 1 = un demi-niveau de
+// plus, pour les écrans haute densité (téléphones) dont chaque point CSS compte 2 à 3
+// pixels. Les tuiles du niveau 5 restent ainsi affichées jusqu'au zoom 3,5 (au lieu
+// de 4,5), et le dézoom maximal montre le niveau 2 (image deux fois plus fine).
+const TILE_ZOOM_BIAS = (window.devicePixelRatio || 1) >= 1.5 ? 1 : 0.5;
 
 // Nombre de rangées de tuiles préchargées autour de l'écran.
 const TILE_PRELOAD_MARGIN = 1;
