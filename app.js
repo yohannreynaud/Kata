@@ -435,7 +435,7 @@ function initMap() {
 }
 
 // Échelle des pins : PIN_SCALE_MIN au zoom minimum, PIN_SCALE_MAX au zoom maximum.
-const PIN_SCALE_MIN = 0.3;    // rond de 9 px : un point de couleur
+const PIN_SCALE_MIN = 0.17;   // rond d'environ 5 px : un petit point de couleur
 const PIN_SCALE_MAX = 1.15;
 // Part de la plage de zoom (0 = dézoom max, 1 = zoom max) où le rond n'est qu'un
 // point, puis sur laquelle l'icône réapparaît progressivement.
