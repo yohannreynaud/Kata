@@ -796,24 +796,26 @@ body[data-view="list"] .btn-filter[data-for="list"] { display: inline-flex; }
 .popup-btn.primary:hover { opacity: .85; }
 
 .custom-marker {
-  width: 32px; height: 40px;
-  display: flex; align-items: flex-start; justify-content: center;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.35));
   cursor: pointer;
 }
-.custom-marker svg { width: 32px; height: 40px; }
-/* Pin sélectionné (bulle ou fiche ouverte) : plus grand, ancré par sa pointe. */
+.custom-marker svg { width: 30px; height: 30px; display: block; }
 /* Taille selon le zoom (--pin-scale, mis à jour par updatePinScale) ; x1,5 quand le
-   pin est touché ou sélectionné. Ancré par sa pointe. */
+   pin est touché ou sélectionné. Agrandi depuis son centre, posé sur le lieu. */
 .custom-marker {
-  transform-origin: 50% 100%;
+  transform-origin: 50% 50%;
   transform: scale(var(--pin-scale, 1));
   transition: transform .15s ease-out;
   pointer-events: auto;
+  border-radius: 50%;
 }
+/* Icône et marque-page : s'effacent au dézoom maximal (simple point de couleur). */
+.custom-marker .pin-detail { opacity: var(--pin-icon-opacity, 1); transition: opacity .15s ease-out; }
 .leaflet-marker-icon.is-selected .custom-marker,
 .leaflet-marker-icon.is-pressed .custom-marker { transform: scale(calc(var(--pin-scale, 1) * 1.5)); }
-/* Seul le pin dessiné (réduit ou non) capte les appuis, pas sa boîte 32x40 d'origine. */
+/* Seul le pin dessiné (réduit ou non) capte les appuis, pas sa boîte 30x30 d'origine. */
 .leaflet-marker-icon.leaflet-interactive { pointer-events: none; }
 
 
